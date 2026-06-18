@@ -11,6 +11,11 @@ const recommendations = require('./recommendations.routes');
 
 const router = Router();
 
+// Healthcheck de la API (la app móvil lo usa para verificar la conexión)
+router.get('/', (req, res) => {
+  res.json({ service: 'MusicYA API', status: 'ok', version: '1.0.0' });
+});
+
 router.use('/auth', auth);                       // Registro / login (artistas y clientes)
 router.use('/artists', artists);                 // Perfiles, portafolio, calificaciones
 router.use('/search', search);                   // Geolocalización, filtros, disponibilidad
