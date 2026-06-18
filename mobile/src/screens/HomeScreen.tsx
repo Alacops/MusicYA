@@ -22,7 +22,13 @@ type Artist = {
   users: { name: string } | null;
 };
 
-export default function HomeScreen({ onOpenArtist }: { onOpenArtist: (id: number) => void }) {
+export default function HomeScreen({
+  onOpenArtist,
+  onOpenBookings,
+}: {
+  onOpenArtist: (id: number) => void;
+  onOpenBookings: () => void;
+}) {
   const { user, logout } = useAuth();
   const [artists, setArtists] = useState<Artist[] | null>(null);
 
@@ -46,6 +52,10 @@ export default function HomeScreen({ onOpenArtist }: { onOpenArtist: (id: number
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.bookingsBtn} onPress={onOpenBookings} activeOpacity={0.85}>
+        <Text style={styles.bookingsText}>📅 Mis reservas</Text>
+      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Catálogo</Text>
       {artists === null ? (
@@ -106,6 +116,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   logoutText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  bookingsBtn: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  bookingsText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   sectionTitle: {
     color: colors.text,
     fontSize: 18,

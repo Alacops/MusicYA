@@ -3,21 +3,31 @@ import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
+import BookingsScreen from './src/screens/BookingsScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import { colors } from './src/theme';
 
-// Navegación del área autenticada: catálogo (home) ↔ detalle de artista
+// Navegación del área autenticada: catálogo (home) ↔ detalle ↔ mis reservas
+type Route = { name: 'home' } | { name: 'artist'; id: number } | { name: 'bookings' };
+
 function AuthedApp() {
-  const [route, setRoute] = useState<{ name: 'home' } | { name: 'artist'; id: number }>({
-    name: 'home',
-  });
+  const [route, setRoute] = useState<Route>({ name: 'home' });
+  const goHome = () => setRoute({ name: 'home' });
 
   if (route.name === 'artist') {
-    return <ArtistDetailScreen artistId={route.id} onBack={() => setRoute({ name: 'home' })} />;
+    return <ArtistDetailScreen artistId={route.id} onBack={goHome} />;
   }
-  return <HomeScreen onOpenArtist={(id) => setRoute({ name: 'artist', id })} />;
+  if (route.name === 'bookings') {
+    return <BookingsScreen onBack={goHome} />;
+  }
+  return (
+    <HomeScreen
+      onOpenArtist={(id) => setRoute({ name: 'artist', id })}
+      onOpenBookings={() => setRoute({ name: 'bookings' })}
+    />
+  );
 }
 
 // Enrutado mínimo basado en estado: si no hay sesión muestra el flujo de
