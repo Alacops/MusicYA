@@ -184,9 +184,11 @@ async function main() {
   });
 
   // 7) Notificaciones
+  // Nota: en un insert en lote, todas las filas deben declarar las mismas claves;
+  // si se omite is_read en algunas, PostgREST inserta NULL (no el default false).
   const { error: notifErr } = await supabase.from('notifications').insert([
-    { user_id: profiles[0].userId, title: 'Nueva solicitud de reserva', body: 'Cliente Prueba quiere contratarte para una Boda.' },
-    { user_id: client.id, title: 'Reserva confirmada', body: 'Tu reserva de Concierto privado fue confirmada.' },
+    { user_id: profiles[0].userId, title: 'Nueva solicitud de reserva', body: 'Cliente Prueba quiere contratarte para una Boda.', is_read: false },
+    { user_id: client.id, title: 'Reserva confirmada', body: 'Tu reserva de Concierto privado fue confirmada.', is_read: false },
     { user_id: client.id, title: 'Pago recibido', body: 'Se confirmó el pago de tu reserva de Aniversario.', is_read: true },
   ]);
   if (notifErr) throw new Error(`notifications: ${notifErr.message}`);
