@@ -22,7 +22,7 @@ type Artist = {
   users: { name: string } | null;
 };
 
-export default function HomeScreen() {
+export default function HomeScreen({ onOpenArtist }: { onOpenArtist: (id: number) => void }) {
   const { user, logout } = useAuth();
   const [artists, setArtists] = useState<Artist[] | null>(null);
 
@@ -56,7 +56,12 @@ export default function HomeScreen() {
         artists.map((a) => {
           const rating = Number(a.rating_avg) || 0;
           return (
-            <View key={a.id} style={styles.artistCard}>
+            <TouchableOpacity
+              key={a.id}
+              style={styles.artistCard}
+              onPress={() => onOpenArtist(a.id)}
+              activeOpacity={0.85}
+            >
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
               </View>
@@ -70,7 +75,7 @@ export default function HomeScreen() {
                 <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
                 {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
               </View>
-            </View>
+            </TouchableOpacity>
           );
         })
       )}

@@ -2,13 +2,26 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
+import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import { colors } from './src/theme';
 
+// Navegación del área autenticada: catálogo (home) ↔ detalle de artista
+function AuthedApp() {
+  const [route, setRoute] = useState<{ name: 'home' } | { name: 'artist'; id: number }>({
+    name: 'home',
+  });
+
+  if (route.name === 'artist') {
+    return <ArtistDetailScreen artistId={route.id} onBack={() => setRoute({ name: 'home' })} />;
+  }
+  return <HomeScreen onOpenArtist={(id) => setRoute({ name: 'artist', id })} />;
+}
+
 // Enrutado mínimo basado en estado: si no hay sesión muestra el flujo de
-// autenticación (login/registro); si la hay, la pantalla principal.
+// autenticación (login/registro); si la hay, el área autenticada.
 function Root() {
   const { user, loading } = useAuth();
   const [screen, setScreen] = useState<'login' | 'register'>('login');
@@ -22,7 +35,7 @@ function Root() {
     );
   }
 
-  if (user) return <HomeScreen />;
+  if (user) return <AuthedApp />;
 
   return screen === 'login' ? (
     <LoginScreen onGoRegister={() => setScreen('register')} />
