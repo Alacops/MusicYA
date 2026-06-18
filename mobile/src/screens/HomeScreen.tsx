@@ -25,9 +25,11 @@ type Artist = {
 export default function HomeScreen({
   onOpenArtist,
   onOpenBookings,
+  onOpenMap,
 }: {
   onOpenArtist: (id: number) => void;
   onOpenBookings: () => void;
+  onOpenMap: () => void;
 }) {
   const { user, logout } = useAuth();
   const [artists, setArtists] = useState<Artist[] | null>(null);
@@ -53,9 +55,14 @@ export default function HomeScreen({
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.bookingsBtn} onPress={onOpenBookings} activeOpacity={0.85}>
-        <Text style={styles.bookingsText}>📅 Mis reservas</Text>
-      </TouchableOpacity>
+      <View style={styles.navRow}>
+        <TouchableOpacity style={styles.navBtn} onPress={onOpenMap} activeOpacity={0.85}>
+          <Text style={styles.navText}>🗺️ Mapa</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={onOpenBookings} activeOpacity={0.85}>
+          <Text style={styles.navText}>📅 Mis reservas</Text>
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.sectionTitle}>Catálogo</Text>
       {artists === null ? (
@@ -116,14 +123,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   logoutText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  bookingsBtn: {
+  navRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
+  navBtn: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
-    marginBottom: spacing.lg,
   },
-  bookingsText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  navText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   sectionTitle: {
     color: colors.text,
     fontSize: 18,
