@@ -89,6 +89,14 @@ async function nearby(req, res, next) {
       results = results.filter((a) => a.is_available === want);
     }
 
+    // Enriquecer con el nombre del artista (la función SQL solo devuelve el perfil)
+    if (results.length) {
+      const ids = [...new Set(results.map((r) => r.user_id))];
+      const { data: users } = await supabase.from('users').select('id, name').in('id', ids);
+      const nameById = Object.fromEntries((users || []).map((u) => [u.id, u.name]));
+      results = results.map((r) => ({ ...r, name: nameById[r.user_id] || 'Artista' }));
+    }
+
     res.json(results);
   } catch (err) {
     next(err);
