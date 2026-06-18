@@ -66,7 +66,13 @@ function formatWhen(iso: string): string {
   });
 }
 
-export default function BookingsScreen({ onBack }: { onBack: () => void }) {
+export default function BookingsScreen({
+  onBack,
+  onPay,
+}: {
+  onBack: () => void;
+  onPay: (bookingId: number) => void;
+}) {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +139,8 @@ export default function BookingsScreen({ onBack }: { onBack: () => void }) {
             ? b.users?.name || 'Cliente'
             : b.artist_profiles?.users?.name || 'Artista';
           const actions = actionsFor(user?.role, b.status);
+          // El cliente puede pagar una reserva confirmada (aún no pagada)
+          const canPay = !isArtist && b.status === 'confirmada';
           return (
             <View key={b.id} style={styles.card}>
               <View style={styles.cardTop}>
@@ -149,12 +157,22 @@ export default function BookingsScreen({ onBack }: { onBack: () => void }) {
               {b.location ? <Text style={styles.detail}>📍 {b.location}</Text> : null}
               {b.total != null ? <Text style={styles.detail}>💰 S/{b.total}</Text> : null}
 
-              {actions.length > 0 && (
+              {(actions.length > 0 || canPay) && (
                 <View style={styles.actions}>
                   {actioningId === b.id ? (
                     <ActivityIndicator color={colors.primary} />
                   ) : (
-                    actions.map((a) => (
+                    <>
+                    {canPay && (
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.payBtn]}
+                        onPress={() => onPay(b.id)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.actionText}>💳 Pagar</Text>
+                      </TouchableOpacity>
+                    )}
+                    {actions.map((a) => (
                       <TouchableOpacity
                         key={a.to}
                         style={[styles.actionBtn, a.danger && styles.actionDanger]}
@@ -165,7 +183,8 @@ export default function BookingsScreen({ onBack }: { onBack: () => void }) {
                           {a.label}
                         </Text>
                       </TouchableOpacity>
-                    ))
+                    ))}
+                    </>
                   )}
                 </View>
               )}
@@ -197,6 +216,7 @@ const styles = StyleSheet.create({
   detail: { color: colors.muted, fontSize: 13, marginTop: 2 },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   actionBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  payBtn: { backgroundColor: '#15803D' },
   actionText: { color: colors.text, fontSize: 13, fontWeight: '700' },
   actionDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FCA5A5' },
   actionTextDanger: { color: '#FCA5A5' },
