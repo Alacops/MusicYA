@@ -28,11 +28,13 @@ export default function HomeScreen({
   onOpenBookings,
   onOpenMap,
   onOpenNotifications,
+  onOpenChat,
 }: {
   onOpenArtist: (id: number) => void;
   onOpenBookings: () => void;
   onOpenMap: () => void;
   onOpenNotifications: () => void;
+  onOpenChat: () => void;
 }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
@@ -72,7 +74,10 @@ export default function HomeScreen({
           <Text style={styles.navText}>🗺️ Mapa</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navBtn} onPress={onOpenBookings} activeOpacity={0.85}>
-          <Text style={styles.navText}>📅 Mis reservas</Text>
+          <Text style={styles.navText}>📅 Reservas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={onOpenChat} activeOpacity={0.85}>
+          <Text style={styles.navText}>💬 Chat</Text>
         </TouchableOpacity>
       </View>
 

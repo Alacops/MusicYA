@@ -4,6 +4,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import BookingsScreen from './src/screens/BookingsScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import ConversationsScreen from './src/screens/ConversationsScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MapScreen from './src/screens/MapScreen';
@@ -11,6 +13,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import { NotificationsProvider } from './src/notifications/NotificationsContext';
+import { SocketProvider } from './src/socket/SocketContext';
 import { colors } from './src/theme';
 
 // Navegación del área autenticada
@@ -20,16 +23,20 @@ type Route =
   | { name: 'bookings' }
   | { name: 'map' }
   | { name: 'payment'; bookingId: number }
-  | { name: 'notifications' };
+  | { name: 'notifications' }
+  | { name: 'conversations' }
+  | { name: 'chat'; conversationId: number; title: string };
 
 function AuthedApp() {
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const goHome = () => setRoute({ name: 'home' });
   const goBookings = () => setRoute({ name: 'bookings' });
   const openArtist = (id: number) => setRoute({ name: 'artist', id });
+  const openChat = (conversationId: number, title: string) =>
+    setRoute({ name: 'chat', conversationId, title });
 
   if (route.name === 'artist') {
-    return <ArtistDetailScreen artistId={route.id} onBack={goHome} />;
+    return <ArtistDetailScreen artistId={route.id} onBack={goHome} onOpenConversation={openChat} />;
   }
   if (route.name === 'bookings') {
     return <BookingsScreen onBack={goHome} onPay={(id) => setRoute({ name: 'payment', bookingId: id })} />;
@@ -43,12 +50,25 @@ function AuthedApp() {
   if (route.name === 'notifications') {
     return <NotificationsScreen onBack={goHome} />;
   }
+  if (route.name === 'conversations') {
+    return <ConversationsScreen onBack={goHome} onOpenChat={openChat} />;
+  }
+  if (route.name === 'chat') {
+    return (
+      <ChatScreen
+        conversationId={route.conversationId}
+        title={route.title}
+        onBack={() => setRoute({ name: 'conversations' })}
+      />
+    );
+  }
   return (
     <HomeScreen
       onOpenArtist={openArtist}
       onOpenBookings={() => setRoute({ name: 'bookings' })}
       onOpenMap={() => setRoute({ name: 'map' })}
       onOpenNotifications={() => setRoute({ name: 'notifications' })}
+      onOpenChat={() => setRoute({ name: 'conversations' })}
     />
   );
 }
@@ -70,9 +90,11 @@ function Root() {
 
   if (user) {
     return (
-      <NotificationsProvider>
-        <AuthedApp />
-      </NotificationsProvider>
+      <SocketProvider>
+        <NotificationsProvider>
+          <AuthedApp />
+        </NotificationsProvider>
+      </SocketProvider>
     );
   }
 

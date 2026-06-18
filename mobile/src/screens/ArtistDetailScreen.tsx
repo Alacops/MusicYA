@@ -39,13 +39,16 @@ type ArtistDetail = {
 export default function ArtistDetailScreen({
   artistId,
   onBack,
+  onOpenConversation,
 }: {
   artistId: number;
   onBack: () => void;
+  onOpenConversation: (conversationId: number, title: string) => void;
 }) {
   const { user } = useAuth();
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
 
   // Formulario de reserva
   const [eventType, setEventType] = useState('');
@@ -65,6 +68,19 @@ export default function ArtistDetailScreen({
   }, [artistId]);
 
   const isOwnProfile = artist != null && user != null && artist.user_id === user.id;
+
+  async function abrirChat() {
+    if (!artist) return;
+    setStartingChat(true);
+    try {
+      const conv = await api.post<{ id: number }>('/chat', { artistId });
+      onOpenConversation(conv.id, artist.users?.name || 'Artista');
+    } catch (e: any) {
+      setError(e.message || 'No se pudo iniciar el chat');
+    } finally {
+      setStartingChat(false);
+    }
+  }
 
   async function reservar() {
     setBookingError(null);
@@ -159,6 +175,12 @@ export default function ArtistDetailScreen({
         )}
 
         {artist.bio ? <Text style={styles.bio}>{artist.bio}</Text> : null}
+
+        {!isOwnProfile && (
+          <View style={{ marginTop: spacing.sm }}>
+            <PrimaryButton title="💬 Chatear" onPress={abrirChat} loading={startingChat} />
+          </View>
+        )}
 
         {/* Portafolio */}
         {artist.portfolio.length > 0 && (

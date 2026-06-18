@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { SOCKET_URL } from '../config';
+import { useSocket } from '../socket/SocketContext';
 
 export type Notification = {
   id: number;
@@ -24,6 +23,7 @@ const NotificationsContext = createContext<NotificationsState | undefined>(undef
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
+  const socket = useSocket();
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -37,7 +37,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Carga inicial + suscripción en tiempo real cuando hay sesión
+  // Carga inicial al iniciar sesión
   useEffect(() => {
     if (!token) {
       setItems([]);
@@ -45,17 +45,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       return;
     }
     refresh();
+  }, [token, refresh]);
 
-    const socket: Socket = io(SOCKET_URL, { auth: { token } });
-    socket.on('notification:new', (n: Notification) => {
+  // Suscripción en tiempo real sobre el socket compartido
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (n: Notification) => {
       setItems((prev) => [n, ...prev]);
       setUnreadCount((c) => c + 1);
-    });
-
-    return () => {
-      socket.disconnect();
     };
-  }, [token, refresh]);
+    socket.on('notification:new', handler);
+    return () => {
+      socket.off('notification:new', handler);
+    };
+  }, [socket]);
 
   async function markRead(id: number) {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
