@@ -7,8 +7,10 @@ import BookingsScreen from './src/screens/BookingsScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MapScreen from './src/screens/MapScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import { NotificationsProvider } from './src/notifications/NotificationsContext';
 import { colors } from './src/theme';
 
 // Navegación del área autenticada
@@ -17,7 +19,8 @@ type Route =
   | { name: 'artist'; id: number }
   | { name: 'bookings' }
   | { name: 'map' }
-  | { name: 'payment'; bookingId: number };
+  | { name: 'payment'; bookingId: number }
+  | { name: 'notifications' };
 
 function AuthedApp() {
   const [route, setRoute] = useState<Route>({ name: 'home' });
@@ -37,11 +40,15 @@ function AuthedApp() {
   if (route.name === 'map') {
     return <MapScreen onBack={goHome} onOpenArtist={openArtist} />;
   }
+  if (route.name === 'notifications') {
+    return <NotificationsScreen onBack={goHome} />;
+  }
   return (
     <HomeScreen
       onOpenArtist={openArtist}
       onOpenBookings={() => setRoute({ name: 'bookings' })}
       onOpenMap={() => setRoute({ name: 'map' })}
+      onOpenNotifications={() => setRoute({ name: 'notifications' })}
     />
   );
 }
@@ -61,7 +68,13 @@ function Root() {
     );
   }
 
-  if (user) return <AuthedApp />;
+  if (user) {
+    return (
+      <NotificationsProvider>
+        <AuthedApp />
+      </NotificationsProvider>
+    );
+  }
 
   return screen === 'login' ? (
     <LoginScreen onGoRegister={() => setScreen('register')} />

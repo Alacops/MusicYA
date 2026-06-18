@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useNotifications } from '../notifications/NotificationsContext';
 import { colors, spacing } from '../theme';
 
 const FEATURES = [
@@ -26,12 +27,15 @@ export default function HomeScreen({
   onOpenArtist,
   onOpenBookings,
   onOpenMap,
+  onOpenNotifications,
 }: {
   onOpenArtist: (id: number) => void;
   onOpenBookings: () => void;
   onOpenMap: () => void;
+  onOpenNotifications: () => void;
 }) {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [artists, setArtists] = useState<Artist[] | null>(null);
 
   useEffect(() => {
@@ -50,6 +54,14 @@ export default function HomeScreen({
             Hola, {user?.name} · {user?.role === 'artista' ? 'Artista' : 'Cliente'}
           </Text>
         </View>
+        <TouchableOpacity style={styles.bell} onPress={onOpenNotifications} activeOpacity={0.85}>
+          <Text style={styles.bellIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <TouchableOpacity style={styles.logout} onPress={logout} activeOpacity={0.85}>
           <Text style={styles.logoutText}>Salir</Text>
         </TouchableOpacity>
@@ -123,6 +135,29 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   logoutText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  bell: {
+    backgroundColor: colors.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  bellIcon: { fontSize: 18 },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#DC2626',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   navRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
   navBtn: {
     flex: 1,

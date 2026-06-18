@@ -30,6 +30,7 @@ type AuthResponse = { user: User; token: string };
 
 type AuthState = {
   user: User | null;
+  token: string | null; // JWT actual (lo usa el socket para autenticar)
   loading: boolean; // true mientras se restaura la sesión guardada
   login: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
@@ -43,6 +44,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Al arrancar, restaura la sesión guardada (token + usuario)
@@ -54,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const session = JSON.parse(raw) as AuthResponse;
           if (session.token) {
             setAuthToken(session.token);
+            setToken(session.token);
             setUser(session.user);
           }
         }
@@ -67,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function persist(res: AuthResponse) {
     setAuthToken(res.token);
+    setToken(res.token);
     setUser(res.user);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(res));
   }
@@ -83,12 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     setAuthToken(null);
+    setToken(null);
     setUser(null);
     await AsyncStorage.removeItem(STORAGE_KEY);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
