@@ -20,12 +20,20 @@ const FEATURES = [
 
 export default function App() {
   const [status, setStatus] = useState<string>('Conectando con el backend…');
+  const [artistCount, setArtistCount] = useState<number | null>(null);
 
   useEffect(() => {
+    // Healthcheck de la API
     api
       .get<{ status: string }>('/')
-      .then((r) => setStatus(`Backend: ${r.status}`))
-      .catch(() => setStatus('Backend sin conexión (inicia el servidor)'));
+      .then((r) => setStatus(`Backend conectado · ${r.status}`))
+      .catch((e) => setStatus(`Sin conexión: ${e.message}`));
+
+    // Dato real desde la BD: artistas disponibles
+    api
+      .get<unknown[]>('/artists')
+      .then((list) => setArtistCount(Array.isArray(list) ? list.length : 0))
+      .catch(() => setArtistCount(null));
   }, []);
 
   return (
@@ -39,6 +47,14 @@ export default function App() {
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{status}</Text>
         </View>
+
+        {artistCount !== null && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {artistCount} artista{artistCount === 1 ? '' : 's'} en el catálogo
+            </Text>
+          </View>
+        )}
 
         {FEATURES.map((f) => (
           <View key={f.title} style={styles.card}>
