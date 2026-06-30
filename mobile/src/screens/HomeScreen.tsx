@@ -1,8 +1,10 @@
+import { MotiView } from 'moti';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import Logo from '../components/Logo';
+import VerifiedBadge from '../components/VerifiedBadge';
 import { useNotifications } from '../notifications/NotificationsContext';
 import { colors, fonts, radius, spacing, type, glow } from '../theme';
 
@@ -21,6 +23,7 @@ type Artist = {
   hourly_rate: number | null;
   rating_avg: number | string | null;
   is_available: boolean;
+  is_verified?: boolean;
   users: { name: string } | null;
 };
 
@@ -89,42 +92,59 @@ export default function HomeScreen({
       ) : artists.length === 0 ? (
         <Text style={styles.placeholder}>Aún no hay artistas registrados.</Text>
       ) : (
-        artists.map((a) => {
+        artists.map((a, i) => {
           const rating = Number(a.rating_avg) || 0;
           return (
-            <TouchableOpacity
+            <MotiView
               key={a.id}
-              style={styles.artistCard}
-              onPress={() => onOpenArtist(a.id)}
-              activeOpacity={0.85}
+              from={{ opacity: 0, translateY: 18, scale: 0.97 }}
+              animate={{ opacity: 1, translateY: 0, scale: 1 }}
+              transition={{ type: 'timing', duration: 360, delay: i * 70 }}
             >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.artistName}>{a.users?.name || 'Artista'}</Text>
-                <Text style={styles.artistMeta}>
-                  {[a.genre, a.city].filter(Boolean).join(' · ') || 'Sin datos'}
-                </Text>
-              </View>
-              <View style={styles.artistRight}>
-                <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
-                {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.artistCard}
+                onPress={() => onOpenArtist(a.id)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.artistName} numberOfLines={1}>
+                      {a.users?.name || 'Artista'}
+                    </Text>
+                    {a.is_verified && <VerifiedBadge />}
+                  </View>
+                  <Text style={styles.artistMeta}>
+                    {[a.genre, a.city].filter(Boolean).join(' · ') || 'Sin datos'}
+                  </Text>
+                </View>
+                <View style={styles.artistRight}>
+                  <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
+                  {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
+                </View>
+              </TouchableOpacity>
+            </MotiView>
           );
         })
       )}
 
       <Text style={styles.sectionTitle}>Módulos</Text>
-      {FEATURES.map((f) => (
-        <View key={f.title} style={styles.card}>
+      {FEATURES.map((f, i) => (
+        <MotiView
+          key={f.title}
+          from={{ opacity: 0, translateY: 18 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 360, delay: 300 + i * 70 }}
+          style={styles.card}
+        >
           <Text style={styles.cardIcon}>{f.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{f.title}</Text>
             <Text style={styles.cardDesc}>{f.desc}</Text>
           </View>
-        </View>
+        </MotiView>
       ))}
     </ScrollView>
   );
@@ -216,7 +236,8 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   avatarText: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
-  artistName: { color: colors.text, fontSize: 16, fontFamily: fonts.bold },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  artistName: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, flexShrink: 1 },
   artistMeta: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },
   artistRight: { alignItems: 'flex-end' },
   rating: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
