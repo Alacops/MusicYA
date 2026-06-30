@@ -41,8 +41,32 @@ create table if not exists artist_profiles (
   lng          double precision,
   rating_avg   numeric(3,2) default 0,
   is_available boolean default true,
+  -- Verificación por validación comunitaria
+  is_verified          boolean default false,
+  verified_at          timestamptz,
+  social_links         jsonb,          -- { instagram, youtube, tiktok, ... }
+  verification_doc_url varchar(500),   -- documento básico de respaldo
   created_at   timestamptz default now()
 );
+
+-- Migración idempotente de verificación para bases ya creadas
+alter table artist_profiles add column if not exists is_verified boolean default false;
+alter table artist_profiles add column if not exists verified_at timestamptz;
+alter table artist_profiles add column if not exists social_links jsonb;
+alter table artist_profiles add column if not exists verification_doc_url varchar(500);
+
+-- Respaldos comunitarios: un artista verificado avala la autenticidad de otro.
+-- Al reunir suficientes respaldos de artistas verificados, el perfil se verifica.
+create table if not exists artist_endorsements (
+  id          bigint generated always as identity primary key,
+  artist_id   bigint not null references artist_profiles(id) on delete cascade, -- respaldado
+  endorser_id bigint not null references artist_profiles(id) on delete cascade, -- quien respalda
+  comment     text,
+  created_at  timestamptz default now(),
+  constraint endorsement_unique unique (artist_id, endorser_id),
+  constraint endorsement_not_self check (artist_id <> endorser_id)
+);
+create index if not exists idx_endorsements_artist on artist_endorsements (artist_id);
 
 -- Portafolio / material multimedia
 create table if not exists portfolio_items (
@@ -181,6 +205,7 @@ alter table payments        enable row level security;
 alter table conversations   enable row level security;
 alter table messages        enable row level security;
 alter table notifications   enable row level security;
+alter table artist_endorsements enable row level security;
 
 -- Datos PÚBLICOS (visibilidad/promoción de artistas): lectura para todos.
 -- La tabla users NO se expone (contiene password_hash y datos personales).
@@ -193,6 +218,12 @@ create policy "lectura pública de perfiles"
 drop policy if exists "lectura pública de portafolio" on portfolio_items;
 create policy "lectura pública de portafolio"
   on portfolio_items for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "lectura pública de respaldos" on artist_endorsements;
+create policy "lectura pública de respaldos"
+  on artist_endorsements for select
   to anon, authenticated
   using (true);
 

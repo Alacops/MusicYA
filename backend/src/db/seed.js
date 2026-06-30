@@ -26,6 +26,9 @@ const ARTISTS = [
     bio: 'Orquesta de cumbia y salsa para bodas, fiestas y aniversarios.',
     lat: -13.5163, // Plaza de Armas
     lng: -71.9785,
+    verified: true,
+    social: { instagram: '@artistaprueba', youtube: 'Artista Prueba' },
+    doc: 'https://demo.musicya/doc-artista-prueba.pdf',
     portfolio: [
       { type: 'audio', url: 'https://demo.musicya/cumbia-en-vivo.mp3', title: 'En vivo' },
       { type: 'imagen', url: 'https://demo.musicya/banda.jpg', title: 'La banda' },
@@ -40,6 +43,8 @@ const ARTISTS = [
     bio: 'Banda de rock en español e inglés para eventos privados.',
     lat: -13.5283, // Wanchaq
     lng: -71.9558,
+    verified: true,
+    social: { instagram: '@anarock' },
     portfolio: [{ type: 'video', url: 'https://demo.musicya/rock-clip.mp4', title: 'Demo en vivo' }],
   },
   {
@@ -51,6 +56,8 @@ const ARTISTS = [
     bio: 'Música andina tradicional: zampoña, charango y quena.',
     lat: -13.5145, // San Blas
     lng: -71.9737,
+    verified: true,
+    doc: 'https://demo.musicya/doc-luis-folk.pdf',
     portfolio: [{ type: 'audio', url: 'https://demo.musicya/quena.mp3', title: 'Solo de quena' }],
   },
   {
@@ -62,6 +69,8 @@ const ARTISTS = [
     bio: 'DJ de electrónica y house para discotecas y fiestas.',
     lat: -13.5238, // Av. de la Cultura (Magisterio)
     lng: -71.9430,
+    verified: false, // sin verificar: tendrá 1 respaldo (1/2) para demostrar el flujo
+    social: { instagram: '@djbeat', tiktok: '@djbeatcusco' },
     portfolio: [],
   },
 ];
@@ -125,6 +134,10 @@ async function main() {
       lat: a.lat ?? null,
       lng: a.lng ?? null,
       is_available: a.is_available ?? true,
+      is_verified: a.verified === true,
+      verified_at: a.verified === true ? new Date().toISOString() : null,
+      social_links: a.social || null,
+      verification_doc_url: a.doc || null,
     });
     if (a.portfolio && a.portfolio.length) {
       const { error } = await supabase
@@ -133,6 +146,19 @@ async function main() {
       if (error) throw new Error(`portfolio_items: ${error.message}`);
     }
     profiles.push({ ...a, userId: u.id, profileId: p.id });
+  }
+
+  // 3b) Respaldo comunitario de demo: un artista verificado avala a DJ Beat
+  //     (queda en 1/2, para mostrar el flujo de verificación en la app).
+  {
+    const endorser = profiles[2]; // Luis Folklore (verificado)
+    const target = profiles[3]; // DJ Beat (sin verificar)
+    const { error } = await supabase.from('artist_endorsements').insert({
+      artist_id: target.profileId,
+      endorser_id: endorser.profileId,
+      comment: 'Lo vi tocar en vivo, es auténtico.',
+    });
+    if (error) throw new Error(`artist_endorsements: ${error.message}`);
   }
 
   // 4) Calificaciones del cliente + recálculo de rating_avg
@@ -210,6 +236,7 @@ async function main() {
   console.log('  - 4 calificaciones, 4 items de portafolio');
   console.log('  - 3 reservas (pendiente / confirmada / pagada) + 1 pago');
   console.log('  - 3 notificaciones, 1 conversación con 2 mensajes');
+  console.log('  - 3 artistas verificados; DJ Beat con 1/2 respaldos (sin verificar)');
   console.log('\nCredenciales de acceso:');
   console.log('  CLIENTE  ->  test@cliente.com  /  ' + PASSWORD);
   console.log('  ARTISTA  ->  test@artista.com  /  ' + PASSWORD);

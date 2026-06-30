@@ -154,8 +154,13 @@ async function update(req, res, next) {
       return res.status(403).json({ message: 'No puedes editar el perfil de otro artista' });
     }
 
-    // Solo se actualizan los campos efectivamente enviados
-    const allowed = ['genre', 'bio', 'hourly_rate', 'city', 'lat', 'lng', 'is_available'];
+    // Solo se actualizan los campos efectivamente enviados.
+    // Nota: 'is_verified'/'verified_at' NO son editables aquí (los gobierna la
+    // validación comunitaria); el artista solo aporta redes y documento.
+    const allowed = [
+      'genre', 'bio', 'hourly_rate', 'city', 'lat', 'lng', 'is_available',
+      'social_links', 'verification_doc_url',
+    ];
     const updates = {};
     for (const field of allowed) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
