@@ -33,12 +33,14 @@ export default function HomeScreen({
   onOpenMap,
   onOpenNotifications,
   onOpenChat,
+  onOpenCopilot,
 }: {
   onOpenArtist: (id: number) => void;
   onOpenBookings: () => void;
   onOpenMap: () => void;
   onOpenNotifications: () => void;
   onOpenChat: () => void;
+  onOpenCopilot: () => void;
 }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
@@ -85,6 +87,10 @@ export default function HomeScreen({
           <Text style={styles.navText}>💬 Chat</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.aiBtn} onPress={onOpenCopilot} activeOpacity={0.9}>
+        <Text style={styles.aiText}>🤖 Pregúntale al asistente IA</Text>
+      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Catálogo</Text>
       {artists === null ? (
@@ -203,6 +209,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navText: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
+  aiBtn: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderColor: colors.magenta,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    ...glow(colors.magenta),
+  },
+  aiText: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
   sectionTitle: {
     color: colors.text,
     fontSize: type.h2,

@@ -13,6 +13,7 @@ import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import BookingsScreen from './src/screens/BookingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ConversationsScreen from './src/screens/ConversationsScreen';
+import CopilotScreen from './src/screens/CopilotScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MapScreen from './src/screens/MapScreen';
@@ -32,7 +33,8 @@ type Route =
   | { name: 'payment'; bookingId: number }
   | { name: 'notifications' }
   | { name: 'conversations' }
-  | { name: 'chat'; conversationId: number; title: string };
+  | { name: 'chat'; conversationId: number; title: string }
+  | { name: 'copilot' };
 
 function AuthedApp() {
   const [route, setRoute] = useState<Route>({ name: 'home' });
@@ -69,6 +71,9 @@ function AuthedApp() {
       />
     );
   }
+  if (route.name === 'copilot') {
+    return <CopilotScreen onBack={goHome} />;
+  }
   return (
     <HomeScreen
       onOpenArtist={openArtist}
@@ -76,6 +81,7 @@ function AuthedApp() {
       onOpenMap={() => setRoute({ name: 'map' })}
       onOpenNotifications={() => setRoute({ name: 'notifications' })}
       onOpenChat={() => setRoute({ name: 'conversations' })}
+      onOpenCopilot={() => setRoute({ name: 'copilot' })}
     />
   );
 }
