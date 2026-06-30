@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
-import { colors, spacing } from '../theme';
+import Logo from '../components/Logo';
+import { colors, fonts, type, spacing } from '../theme';
 
 export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void }) {
   const { login } = useAuth();
@@ -41,7 +42,7 @@ export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.brand}>MusicYA</Text>
+        <Logo size={200} style={styles.logo} />
         <Text style={styles.title}>Inicia sesión</Text>
         <Text style={styles.subtitle}>Contrata y promociona artistas en tiempo real</Text>
 
@@ -81,10 +82,11 @@ export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, paddingTop: 80, flexGrow: 1 },
-  brand: { color: colors.primary, fontSize: 36, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 24, fontWeight: '700', marginTop: spacing.lg },
-  subtitle: { color: colors.muted, fontSize: 14, marginTop: 4, marginBottom: spacing.lg },
+  content: { padding: spacing.lg, paddingTop: 56, flexGrow: 1 },
+  logo: { alignSelf: 'center', marginBottom: spacing.sm },
+  brand: { color: colors.accent, fontSize: type.hero, fontFamily: fonts.display, letterSpacing: -1 },
+  title: { color: colors.text, fontSize: type.title, fontFamily: fonts.display, textTransform: 'uppercase', textAlign: 'center' },
+  subtitle: { color: colors.muted, fontSize: 14, marginTop: 4, marginBottom: spacing.lg, fontFamily: fonts.regular, textAlign: 'center' },
   errorBox: {
     backgroundColor: '#3B1219',
     borderRadius: 10,

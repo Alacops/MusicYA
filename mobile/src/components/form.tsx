@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { colors, spacing } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, fonts, gradients, radius, spacing, glow } from '../theme';
 
 // Campo de formulario con etiqueta + input estilizado
 export function Field({ label, ...props }: { label: string } & TextInputProps) {
@@ -19,7 +20,7 @@ export function Field({ label, ...props }: { label: string } & TextInputProps) {
   );
 }
 
-// Botón principal con estado de carga
+// Botón principal con degradado de marca (magenta → violeta) y brillo neón
 export function PrimaryButton({
   title,
   onPress,
@@ -34,38 +35,57 @@ export function PrimaryButton({
   const off = disabled || loading;
   return (
     <TouchableOpacity
-      style={[styles.button, off && styles.buttonDisabled]}
+      style={[styles.buttonWrap, off && styles.buttonDisabled]}
       onPress={onPress}
       disabled={off}
       activeOpacity={0.85}
     >
-      {loading ? (
-        <ActivityIndicator color={colors.text} />
-      ) : (
-        <Text style={styles.buttonText}>{title}</Text>
-      )}
+      <LinearGradient
+        colors={gradients.brand}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.button}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>{title}</Text>
+        )}
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   fieldWrap: { marginBottom: spacing.md },
-  label: { color: colors.muted, fontSize: 13, marginBottom: 6 },
+  label: { color: colors.muted, fontSize: 13, marginBottom: 6, fontFamily: fonts.medium },
   input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
     color: colors.text,
     fontSize: 15,
+    fontFamily: fonts.regular,
+  },
+  buttonWrap: {
+    borderRadius: radius.md,
+    marginTop: spacing.sm,
+    ...glow(),
   },
   button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: radius.md,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginTop: spacing.sm,
   },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  buttonDisabled: { opacity: 0.55 },
+  buttonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontFamily: fonts.display,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 });

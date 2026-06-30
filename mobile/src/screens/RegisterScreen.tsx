@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Role, RegisterPayload, useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
-import { colors, spacing } from '../theme';
+import Logo from '../components/Logo';
+import { colors, fonts, type, spacing } from '../theme';
 
 const ROLES: { value: Role; label: string; desc: string }[] = [
   { value: 'cliente', label: 'Cliente', desc: 'Quiero contratar artistas' },
@@ -77,7 +78,7 @@ export default function RegisterScreen({ onGoLogin }: { onGoLogin: () => void })
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.brand}>MusicYA</Text>
+        <Logo size={110} style={styles.logo} />
         <Text style={styles.title}>Crea tu cuenta</Text>
 
         {/* Selector de rol */}
@@ -170,9 +171,10 @@ export default function RegisterScreen({ onGoLogin }: { onGoLogin: () => void })
 }
 
 const styles = StyleSheet.create({
-  content: { padding: spacing.lg, paddingTop: 72, paddingBottom: 48, flexGrow: 1 },
-  brand: { color: colors.primary, fontSize: 32, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700', marginTop: spacing.md, marginBottom: spacing.lg },
+  content: { padding: spacing.lg, paddingTop: 52, paddingBottom: 48, flexGrow: 1 },
+  logo: { alignSelf: 'center', marginBottom: spacing.xs },
+  brand: { color: colors.accent, fontSize: type.title, fontFamily: fonts.display, letterSpacing: -0.5 },
+  title: { color: colors.text, fontSize: type.h2, fontFamily: fonts.display, marginBottom: spacing.lg, textTransform: 'uppercase', textAlign: 'center' },
   sectionLabel: { color: colors.muted, fontSize: 13, marginBottom: spacing.sm, marginTop: spacing.sm },
   roleRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
   roleCard: {

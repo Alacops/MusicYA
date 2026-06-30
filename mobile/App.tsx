@@ -1,6 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  useFonts,
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import ArtistDetailScreen from './src/screens/ArtistDetailScreen';
 import BookingsScreen from './src/screens/BookingsScreen';
@@ -106,6 +113,22 @@ function Root() {
 }
 
 export default function App() {
+  // Carga la tipografía Space Grotesk antes de renderizar la app
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={[styles.container, styles.loading]}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
       <View style={styles.container}>
