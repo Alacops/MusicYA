@@ -1,6 +1,23 @@
 // Mensajería (persistida) y chatbot. El envío en tiempo real se maneja en
 // src/sockets, que reutiliza el helper saveMessage de este módulo.
 const { supabase } = require('../config/supabase');
+const Anthropic = require('@anthropic-ai/sdk');
+
+// Cliente de Claude (lazy). Si no hay ANTHROPIC_API_KEY, el bot cae al modo
+// por palabras clave — la app sigue funcionando sin la clave de IA.
+let anthropicClient;
+function getAnthropic() {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!anthropicClient) anthropicClient = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
+  return anthropicClient;
+}
+
+// Modelo económico y rápido para un copiloto conversacional
+const BOT_MODEL = 'claude-haiku-4-5';
+
+const BOT_SYSTEM = `Eres el asistente virtual de MusicYA, una plataforma para contratar artistas musicales (cumbia, rock, folklore andino, electrónica) en Cusco, Perú.
+Ayudas a clientes y artistas con: buscar y reservar artistas, pagos con QR (Yape/Plin), tarifas por hora, calificaciones, el chat en tiempo real, el mapa de artistas y la verificación de artistas por respaldo comunitario (un artista verificado avala a otro; con 2 respaldos el perfil queda verificado).
+Responde SIEMPRE en español, de forma breve, cálida y clara (2 a 4 frases). No inventes datos privados de la cuenta del usuario (sus reservas, montos, mensajes): si te los piden, indícale dónde verlos en la app.`;
 
 // Carga una conversación con el user_id del artista (para control de acceso)
 async function loadConversation(conversationId) {
@@ -157,26 +174,68 @@ async function sendMessage(req, res, next) {
   }
 }
 
-// POST /api/chat/bot
-// Chatbot por palabras clave: responde dudas frecuentes de contratación
-async function bot(req, res, next) {
-  const text = String(req.body.message || '').toLowerCase();
-
+// Respuesta de respaldo por palabras clave (sin IA)
+function keywordReply(message) {
+  const text = String(message || '').toLowerCase();
   const intents = [
     { keys: ['hola', 'buenas', 'saludos'], reply: '¡Hola! Soy el asistente de MusicYA. Puedo ayudarte a reservar artistas, entender los pagos o resolver dudas. ¿Qué necesitas?' },
     { keys: ['reserv', 'contrat', 'agendar'], reply: 'Para reservar: busca un artista, abre su perfil y crea una reserva con la fecha del evento. El artista la confirmará y luego podrás pagar.' },
     { keys: ['pag', 'qr', 'yape', 'plin'], reply: 'Los pagos se hacen con QR. Genera el QR desde tu reserva confirmada, paga y sube tu comprobante para validar el pago.' },
     { keys: ['precio', 'tarifa', 'costo', 'cuánto', 'cuanto'], reply: 'Cada artista define su tarifa por hora en su perfil. El total de la reserva aparece antes de confirmar el pago.' },
     { keys: ['cancel', 'reembolso'], reply: 'Puedes cancelar una reserva desde "Mis reservas" mientras no esté finalizada. Para reembolsos, coordina directamente con el artista por el chat.' },
+    { keys: ['verific', 'insignia', 'respald'], reply: 'La insignia de verificado se obtiene por validación comunitaria: cuando 2 artistas ya verificados respaldan tu perfil, quedas verificado. Suma redes y un documento para reforzar tu autenticidad.' },
     { keys: ['artista', 'registr', 'unir'], reply: 'Si eres músico, regístrate como "artista", completa tu perfil (género, tarifa, portafolio) y empezarás a recibir solicitudes de reserva.' },
   ];
-
   const match = intents.find((i) => i.keys.some((k) => text.includes(k)));
-  const reply = match
+  return match
     ? match.reply
-    : 'No estoy seguro de haber entendido. Puedo ayudarte con reservas, pagos, tarifas o cómo registrarte como artista. ¿Sobre cuál quieres saber?';
+    : 'No estoy seguro de haber entendido. Puedo ayudarte con reservas, pagos, tarifas, verificación o cómo registrarte como artista. ¿Sobre cuál quieres saber?';
+}
 
-  res.json({ reply });
+// POST /api/chat/bot
+// Copiloto conversacional con Claude (Haiku 4.5). Acepta { message, history? }.
+// Si no hay clave de IA o falla, responde con el modo por palabras clave.
+async function bot(req, res, next) {
+  try {
+    const message = String(req.body.message || '').trim();
+    if (!message) return res.status(400).json({ message: 'El mensaje no puede estar vacío' });
+
+    const client = getAnthropic();
+    if (!client) {
+      return res.json({ reply: keywordReply(message), source: 'keywords' });
+    }
+
+    // Historial opcional (multivuelta): se conserva el contexto de la charla
+    const history = Array.isArray(req.body.history) ? req.body.history : [];
+    const messages = history
+      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.content }));
+    // Claude requiere que el primer mensaje sea del usuario
+    while (messages.length && messages[0].role === 'assistant') messages.shift();
+    messages.push({ role: 'user', content: message });
+
+    try {
+      const resp = await client.messages.create({
+        model: BOT_MODEL,
+        max_tokens: 500,
+        system: BOT_SYSTEM,
+        messages,
+      });
+      const reply =
+        resp.content
+          .filter((b) => b.type === 'text')
+          .map((b) => b.text)
+          .join('')
+          .trim() || 'Lo siento, no pude generar una respuesta.';
+      return res.json({ reply, source: 'claude' });
+    } catch (err) {
+      console.warn('⚠ Claude no disponible, usando fallback por palabras clave:', err.message);
+      return res.json({ reply: keywordReply(message), source: 'keywords-fallback' });
+    }
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {
