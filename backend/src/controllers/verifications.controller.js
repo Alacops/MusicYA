@@ -4,6 +4,14 @@ const { createNotification } = require('./notifications.controller');
 // Respaldos de artistas verificados necesarios para verificar a un artista nuevo.
 const REQUIRED_ENDORSEMENTS = 2;
 
+// Elegibilidad para VOTAR (respaldar): el votante, además de estar verificado,
+// debe ser un artista consolidado: cuenta antigua, con contrataciones reales y
+// buena reputación.
+const MIN_ACCOUNT_AGE_DAYS = 7;
+const MIN_FINISHED_BOOKINGS = 1;
+const MIN_REPUTATION = 4.0;
+const VOTER_REQUIREMENTS = `Para votar debes estar verificado, tener cuenta con ≥ ${MIN_ACCOUNT_AGE_DAYS} días, ≥ ${MIN_FINISHED_BOOKINGS} contratación finalizada y reputación ≥ ${MIN_REPUTATION.toFixed(1)}.`;
+
 // Notifica sin romper el flujo principal
 async function notify(userId, title, body) {
   try {
@@ -17,10 +25,32 @@ async function notify(userId, title, body) {
 async function getMyArtistProfile(userId) {
   const { data } = await supabase
     .from('artist_profiles')
-    .select('id, is_verified')
+    .select('id, is_verified, created_at, rating_avg')
     .eq('user_id', userId)
     .maybeSingle();
   return data || null;
+}
+
+// Valida que el votante sea un artista consolidado. Devuelve un array de motivos
+// de incumplimiento (vacío si es elegible).
+async function voterIneligibilityReasons(endorser) {
+  const reasons = [];
+  const ageMs = Date.now() - new Date(endorser.created_at).getTime();
+  if (ageMs < MIN_ACCOUNT_AGE_DAYS * 86400000) {
+    reasons.push(`tu cuenta debe tener al menos ${MIN_ACCOUNT_AGE_DAYS} días`);
+  }
+  if (Number(endorser.rating_avg) < MIN_REPUTATION) {
+    reasons.push(`tu reputación debe ser ≥ ${MIN_REPUTATION.toFixed(1)}`);
+  }
+  const { count } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('artist_id', endorser.id)
+    .eq('status', 'finalizada');
+  if ((count || 0) < MIN_FINISHED_BOOKINGS) {
+    reasons.push(`necesitas al menos ${MIN_FINISHED_BOOKINGS} contratación finalizada`);
+  }
+  return reasons;
 }
 
 // Cuenta los respaldos provenientes de artistas que están verificados
@@ -53,6 +83,13 @@ async function endorse(req, res, next) {
     if (!endorser) return res.status(403).json({ message: 'Solo los artistas pueden respaldar' });
     if (!endorser.is_verified) {
       return res.status(403).json({ message: 'Solo los artistas verificados pueden respaldar a otros' });
+    }
+
+    // Y además cumplir la elegibilidad de votante (cuenta antigua, contrataciones
+    // reales y buena reputación).
+    const reasons = await voterIneligibilityReasons(endorser);
+    if (reasons.length) {
+      return res.status(403).json({ message: `No cumples los requisitos para votar: ${reasons.join('; ')}.` });
     }
 
     // El artista respaldado debe existir
@@ -141,6 +178,7 @@ async function getStatus(req, res, next) {
       endorsements,
       has_social: artist.social_links != null && Object.keys(artist.social_links || {}).length > 0,
       has_document: !!artist.verification_doc_url,
+      voter_requirements: VOTER_REQUIREMENTS,
     });
   } catch (err) {
     next(err);

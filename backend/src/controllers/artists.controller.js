@@ -2,26 +2,6 @@ const { supabase } = require('../config/supabase');
 
 const PORTFOLIO_TYPES = ['imagen', 'video', 'audio'];
 
-// Recalcula y persiste el promedio de calificaciones de un artista
-async function refreshRatingAverage(artistId) {
-  const { data: rows, error } = await supabase
-    .from('ratings')
-    .select('score')
-    .eq('artist_id', artistId);
-  if (error) throw error;
-
-  const avg = rows.length
-    ? rows.reduce((sum, r) => sum + r.score, 0) / rows.length
-    : 0;
-
-  await supabase
-    .from('artist_profiles')
-    .update({ rating_avg: avg.toFixed(2) })
-    .eq('id', artistId);
-
-  return Number(avg.toFixed(2));
-}
-
 // Inserta los items de portafolio validados y vinculados a un artista
 async function insertPortfolio(artistId, portfolio) {
   const items = (portfolio || [])
@@ -83,10 +63,12 @@ async function getById(req, res, next) {
         .from('portfolio_items')
         .select('id, type, url, title')
         .eq('artist_id', artist.id),
+      // Reseñas que recibió el artista (bilaterales, atadas a contrataciones)
       supabase
-        .from('ratings')
-        .select('id, score, comment, created_at, users(name)')
-        .eq('artist_id', artist.id)
+        .from('reviews')
+        .select('id, score, comment, created_at, users!reviews_rater_id_fkey(name)')
+        .eq('ratee_id', artist.user_id)
+        .eq('ratee_role', 'artista')
         .order('created_at', { ascending: false }),
     ]);
 
@@ -194,48 +176,4 @@ async function update(req, res, next) {
   }
 }
 
-// POST /api/artists/:id/ratings  (un usuario autenticado califica a un artista)
-async function addRating(req, res, next) {
-  try {
-    const artistId = req.params.id;
-    const { score, comment } = req.body;
-
-    const numScore = Number(score);
-    if (!Number.isInteger(numScore) || numScore < 1 || numScore > 5) {
-      return res.status(400).json({ message: 'score debe ser un entero entre 1 y 5' });
-    }
-
-    const { data: artist, error: artistError } = await supabase
-      .from('artist_profiles')
-      .select('id, user_id')
-      .eq('id', artistId)
-      .maybeSingle();
-    if (artistError) return next(artistError);
-    if (!artist) return res.status(404).json({ message: 'Artista no encontrado' });
-
-    // El artista no puede calificarse a sí mismo
-    if (Number(artist.user_id) === Number(req.user.id)) {
-      return res.status(403).json({ message: 'No puedes calificar tu propio perfil' });
-    }
-
-    const { data: rating, error } = await supabase
-      .from('ratings')
-      .insert({
-        artist_id: artist.id,
-        client_id: req.user.id,
-        score: numScore,
-        comment: comment || null,
-      })
-      .select('id, score, comment, created_at')
-      .single();
-    if (error) return next(error);
-
-    const rating_avg = await refreshRatingAverage(artist.id);
-
-    res.status(201).json({ rating, rating_avg });
-  } catch (err) {
-    next(err);
-  }
-}
-
-module.exports = { list, getById, create, update, addRating };
+module.exports = { list, getById, create, update };

@@ -9,7 +9,6 @@ router.get('/', ctrl.list);                                   // Listar artistas
 router.get('/:id', ctrl.getById);                             // Perfil de un artista
 router.post('/', authRequired, requireRole('artista'), ctrl.create);
 router.put('/:id', authRequired, requireRole('artista'), ctrl.update);
-router.post('/:id/ratings', authRequired, ctrl.addRating);    // Calificar a un artista
 
 // Verificación comunitaria
 router.get('/:id/verification', verif.getStatus);             // Estado + respaldos (público)

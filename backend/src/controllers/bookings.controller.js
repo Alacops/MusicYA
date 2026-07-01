@@ -79,7 +79,8 @@ async function getMyArtistProfileId(userId) {
 async function listMine(req, res, next) {
   try {
     const selectCols =
-      '*, artist_profiles(id, genre, city, users(name)), users!bookings_client_id_fkey(name)';
+      '*, artist_profiles(id, genre, city, rating_avg, users(name)), ' +
+      'users!bookings_client_id_fkey(name, reputation_avg)';
 
     let query = supabase
       .from('bookings')
@@ -96,7 +97,106 @@ async function listMine(req, res, next) {
 
     const { data, error } = await query;
     if (error) return next(error);
-    res.json(data);
+
+    // Marca qué reservas ya calificó el usuario (para el flujo bilateral)
+    const rows = data || [];
+    let reviewedIds = new Set();
+    if (rows.length) {
+      const { data: mine } = await supabase
+        .from('reviews')
+        .select('booking_id')
+        .eq('rater_id', req.user.id)
+        .in('booking_id', rows.map((b) => b.id));
+      reviewedIds = new Set((mine || []).map((r) => r.booking_id));
+    }
+
+    res.json(rows.map((b) => ({ ...b, reviewed_by_me: reviewedIds.has(b.id) })));
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Recalcula el promedio del calificado a partir de 'reviews'.
+// Para artista actualiza artist_profiles.rating_avg; para cliente users.reputation_avg.
+async function refreshRateeAverage({ rateeId, rateeRole, artistProfileId }) {
+  const { data: rows, error } = await supabase
+    .from('reviews')
+    .select('score')
+    .eq('ratee_id', rateeId)
+    .eq('ratee_role', rateeRole);
+  if (error) throw error;
+  const avg = rows.length ? rows.reduce((s, r) => s + r.score, 0) / rows.length : 0;
+  const value = avg.toFixed(2);
+
+  if (rateeRole === 'artista') {
+    await supabase.from('artist_profiles').update({ rating_avg: value }).eq('id', artistProfileId);
+  } else {
+    await supabase.from('users').update({ reputation_avg: value }).eq('id', rateeId);
+  }
+  return Number(value);
+}
+
+// POST /api/bookings/:id/review  (calificación bilateral tras el evento)
+async function createReview(req, res, next) {
+  try {
+    const numScore = Number(req.body.score);
+    if (!Number.isInteger(numScore) || numScore < 1 || numScore > 5) {
+      return res.status(400).json({ message: 'score debe ser un entero entre 1 y 5' });
+    }
+
+    const { data: booking, error: findError } = await supabase
+      .from('bookings')
+      .select('*, artist_profiles(id, user_id)')
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (findError) return next(findError);
+    if (!booking) return res.status(404).json({ message: 'Reserva no encontrada' });
+
+    const artistUserId = booking.artist_profiles?.user_id;
+    const isClient = Number(booking.client_id) === Number(req.user.id);
+    const isArtist = Number(artistUserId) === Number(req.user.id);
+    if (!isClient && !isArtist) {
+      return res.status(403).json({ message: 'No participas en esta reserva' });
+    }
+
+    // Solo se califica una vez terminado el evento
+    if (booking.status !== 'finalizada') {
+      return res.status(400).json({ message: 'Solo puedes calificar una reserva finalizada' });
+    }
+
+    // Cliente califica al artista; artista califica al cliente
+    const ratee = isClient
+      ? { id: artistUserId, role: 'artista' }
+      : { id: booking.client_id, role: 'cliente' };
+
+    const { error: insErr } = await supabase.from('reviews').insert({
+      booking_id: booking.id,
+      rater_id: req.user.id,
+      ratee_id: ratee.id,
+      ratee_role: ratee.role,
+      score: numScore,
+      comment: req.body.comment || null,
+    });
+    if (insErr) {
+      if (insErr.code === '23505') {
+        return res.status(409).json({ message: 'Ya calificaste esta contratación' });
+      }
+      return next(insErr);
+    }
+
+    const average = await refreshRateeAverage({
+      rateeId: ratee.id,
+      rateeRole: ratee.role,
+      artistProfileId: booking.artist_profiles?.id,
+    });
+
+    await notify(
+      ratee.id,
+      'Nueva calificación recibida',
+      `${req.user.name} te calificó con ${numScore}★ por la reserva #${booking.id}.`
+    );
+
+    res.status(201).json({ ok: true, score: numScore, average });
   } catch (err) {
     next(err);
   }
@@ -250,10 +350,18 @@ async function updateStatus(req, res, next) {
       await notify(counterpartId, 'Reserva actualizada', `La reserva #${booking.id} cambió a '${status}'.`);
     }
 
+    // Al finalizar el evento, invita a AMBAS partes a calificarse (flujo bilateral)
+    if (status === 'finalizada') {
+      const inviteBoth = [booking.client_id, booking.artist_profiles?.user_id].filter(Boolean);
+      for (const uid of inviteBoth) {
+        await notify(uid, 'Califica tu experiencia', `El evento de la reserva #${booking.id} terminó. Deja tu calificación.`);
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { listMine, create, checkAvailability, updateStatus };
+module.exports = { listMine, create, checkAvailability, updateStatus, createReview };

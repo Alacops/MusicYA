@@ -8,5 +8,6 @@ router.get('/', authRequired, ctrl.listMine);          // Reservas del usuario
 router.post('/', authRequired, ctrl.create);           // Crear reserva
 router.get('/availability', ctrl.checkAvailability);   // Validar disponibilidad
 router.patch('/:id/status', authRequired, ctrl.updateStatus);
+router.post('/:id/review', authRequired, ctrl.createReview); // Calificación bilateral (evento finalizado)
 
 module.exports = router;
