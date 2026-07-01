@@ -6,19 +6,30 @@
 //   Uso:  npm run seed   (desde la carpeta backend)
 //
 // Credenciales generadas (contraseña común): 123456
-//   - Cliente: test@cliente.com
-//   - Artista: test@artista.com
+//   - Cliente: cliente@musicya.com
+//   - Artista: artista@musicya.com
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const { supabase } = require('../config/supabase');
 
 const PASSWORD = '123456';
 
+// Clientes de prueba (el primero es el "cliente principal" con historial completo;
+// el resto existen para poder iniciar sesión y probar el flujo de contratación).
+const CLIENTS = [
+  { email: 'cliente@musicya.com', name: 'Cliente Prueba', phone: '+51 999 111 222' },
+  { email: 'rosa.mendoza@musicya.com', name: 'Rosa Mendoza', phone: '+51 984 222 333' },
+  { email: 'carlos.quispe@musicya.com', name: 'Carlos Quispe', phone: '+51 984 333 444' },
+  { email: 'lucia.torres@musicya.com', name: 'Lucía Torres', phone: '+51 984 444 555' },
+  { email: 'jorge.flores@musicya.com', name: 'Jorge Flores', phone: '+51 984 555 666' },
+];
+
 // Todos los artistas en CUSCO, con coordenadas reales de distintos barrios para
 // que se distribuyan en el mapa en tiempo real (búsqueda geolocalizada Haversine).
+// demoScore = nota que el cliente principal les deja en la reserva finalizada.
 const ARTISTS = [
   {
-    email: 'test@artista.com',
+    email: 'artista@musicya.com',
     name: 'Artista Prueba',
     genre: 'Cumbia',
     city: 'Cusco',
@@ -27,6 +38,7 @@ const ARTISTS = [
     lat: -13.5163, // Plaza de Armas
     lng: -71.9785,
     verified: true,
+    demoScore: 4,
     social: { instagram: '@artistaprueba', youtube: 'Artista Prueba' },
     doc: 'https://demo.musicya/doc-artista-prueba.pdf',
     portfolio: [
@@ -35,7 +47,7 @@ const ARTISTS = [
     ],
   },
   {
-    email: 'ana.rock@artista.com',
+    email: 'ana.rock@musicya.com',
     name: 'Ana Rock',
     genre: 'Rock',
     city: 'Cusco',
@@ -44,11 +56,12 @@ const ARTISTS = [
     lat: -13.5283, // Wanchaq
     lng: -71.9558,
     verified: true,
+    demoScore: 5,
     social: { instagram: '@anarock' },
     portfolio: [{ type: 'video', url: 'https://demo.musicya/rock-clip.mp4', title: 'Demo en vivo' }],
   },
   {
-    email: 'luis.folk@artista.com',
+    email: 'luis.folk@musicya.com',
     name: 'Luis Folklore',
     genre: 'Folklore Andino',
     city: 'Cusco',
@@ -57,11 +70,12 @@ const ARTISTS = [
     lat: -13.5145, // San Blas
     lng: -71.9737,
     verified: true,
+    demoScore: 5,
     doc: 'https://demo.musicya/doc-luis-folk.pdf',
     portfolio: [{ type: 'audio', url: 'https://demo.musicya/quena.mp3', title: 'Solo de quena' }],
   },
   {
-    email: 'dj.beat@artista.com',
+    email: 'dj.beat@musicya.com',
     name: 'DJ Beat',
     genre: 'Electrónica',
     city: 'Cusco',
@@ -70,8 +84,80 @@ const ARTISTS = [
     lat: -13.5238, // Av. de la Cultura (Magisterio)
     lng: -71.9430,
     verified: false, // sin verificar: tendrá 1 respaldo (1/2) para demostrar el flujo
+    demoScore: 3,
     social: { instagram: '@djbeat', tiktok: '@djbeatcusco' },
     portfolio: [],
+  },
+  {
+    email: 'mariachi.sol@musicya.com',
+    name: 'Mariachi Sol de Cusco',
+    genre: 'Mariachi',
+    city: 'Cusco',
+    hourly_rate: 300,
+    bio: 'Mariachi tradicional para serenatas, bodas y aniversarios.',
+    lat: -13.5195, // Santiago
+    lng: -71.9680,
+    verified: true,
+    demoScore: 5,
+    social: { instagram: '@mariachisolcusco' },
+    doc: 'https://demo.musicya/doc-mariachi-sol.pdf',
+    portfolio: [{ type: 'audio', url: 'https://demo.musicya/serenata.mp3', title: 'Serenata' }],
+  },
+  {
+    email: 'valentina.rios@musicya.com',
+    name: 'Valentina Ríos',
+    genre: 'Cantante / Pop',
+    city: 'Cusco',
+    hourly_rate: 220,
+    bio: 'Cantante solista de pop y baladas para eventos y ceremonias.',
+    lat: -13.5320, // Ttio
+    lng: -71.9490,
+    verified: true,
+    demoScore: 5,
+    social: { instagram: '@valentinariosmusic', tiktok: '@valeriosmusic' },
+    portfolio: [{ type: 'video', url: 'https://demo.musicya/valentina-live.mp4', title: 'En vivo' }],
+  },
+  {
+    email: 'miguel.trompeta@musicya.com',
+    name: 'Miguel Ángel Trompeta',
+    genre: 'Trompetista',
+    city: 'Cusco',
+    hourly_rate: 160,
+    bio: 'Trompetista para orquestas, misas, desfiles y eventos corporativos.',
+    lat: -13.5100, // San Cristóbal
+    lng: -71.9820,
+    verified: false,
+    demoScore: 4,
+    social: { instagram: '@migueltrompeta' },
+    portfolio: [{ type: 'audio', url: 'https://demo.musicya/trompeta-solo.mp3', title: 'Solo de trompeta' }],
+  },
+  {
+    email: 'showkids@musicya.com',
+    name: 'Show Kids Cusco',
+    genre: 'Animación infantil',
+    city: 'Cusco',
+    hourly_rate: 140,
+    bio: 'Animadores para fiestas infantiles: juegos, magia y globoflexia.',
+    lat: -13.5350, // Larapa
+    lng: -71.9600,
+    verified: false,
+    demoScore: 4,
+    social: { instagram: '@showkidscusco', tiktok: '@showkidscusco' },
+    portfolio: [{ type: 'imagen', url: 'https://demo.musicya/showkids.jpg', title: 'Fiesta infantil' }],
+  },
+  {
+    email: 'sabor.latino@musicya.com',
+    name: 'Grupo Sabor Latino',
+    genre: 'Salsa',
+    city: 'Cusco',
+    hourly_rate: 280,
+    bio: 'Orquesta de salsa y timba para fiestas y matrimonios.',
+    lat: -13.5260, // Centro
+    lng: -71.9700,
+    verified: false,
+    demoScore: 4,
+    social: { instagram: '@saborlatinocusco' },
+    portfolio: [{ type: 'video', url: 'https://demo.musicya/salsa-clip.mp4', title: 'Salsa en vivo' }],
   },
 ];
 
@@ -91,14 +177,16 @@ function futureDay(daysAhead, hourUTC) {
 async function main() {
   console.log('Generando datos de prueba…');
   const hash = await bcrypt.hash(PASSWORD, 10);
-  const seedEmails = ['test@cliente.com', ...ARTISTS.map((a) => a.email)];
+  const seedEmails = [...CLIENTS.map((c) => c.email), ...ARTISTS.map((a) => a.email)];
 
   // 1) Limpieza idempotente (cascade borra perfiles, reservas, etc.).
-  // Borra los correos del seed y cualquier cuenta demo/de prueba anterior, para
-  // dejar un dataset consistente y 100% de Cusco.
+  // Borra los correos del seed y cualquier cuenta demo/de prueba anterior
+  // (incluidos los dominios de seeds previos), para dejar un dataset consistente.
   let removed = 0;
   for (const filter of [
     (q) => q.in('email', seedEmails),
+    (q) => q.like('email', '%@artista.com'), // seeds anteriores
+    (q) => q.like('email', '%@cliente.com'), // seeds anteriores
     (q) => q.like('email', '%@musicya.pe'),
     (q) => q.like('email', '%@test.com'),
   ]) {
@@ -107,14 +195,19 @@ async function main() {
   }
   console.log(`  limpieza: ${removed} usuario(s) demo/de prueba previos eliminados`);
 
-  // 2) Cliente de prueba
-  const client = await insertOne('users', {
-    name: 'Cliente Prueba',
-    email: 'test@cliente.com',
-    password_hash: hash,
-    role: 'cliente',
-    phone: '+51 999 111 222',
-  });
+  // 2) Clientes de prueba (el primero es el principal, con historial completo)
+  const clients = [];
+  for (const c of CLIENTS) {
+    const cu = await insertOne('users', {
+      name: c.name,
+      email: c.email,
+      password_hash: hash,
+      role: 'cliente',
+      phone: c.phone || null,
+    });
+    clients.push(cu);
+  }
+  const client = clients[0];
 
   // 3) Artistas + perfiles + portafolio
   const profiles = [];
@@ -138,6 +231,9 @@ async function main() {
       verified_at: a.verified === true ? new Date().toISOString() : null,
       social_links: a.social || null,
       verification_doc_url: a.doc || null,
+      // 60 días de antigüedad: cuentas consolidadas que cumplen el requisito de
+      // antigüedad para poder VOTAR la verificación de otros artistas.
+      created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
     });
     if (a.portfolio && a.portfolio.length) {
       const { error } = await supabase
@@ -161,29 +257,9 @@ async function main() {
     if (error) throw new Error(`artist_endorsements: ${error.message}`);
   }
 
-  // 4) Calificaciones del cliente + recálculo de rating_avg
-  const ratingPlan = [
-    { i: 0, score: 4, comment: 'Muy buenos, animaron toda la fiesta.' },
-    { i: 1, score: 5, comment: 'Excelente energía en vivo.' },
-    { i: 2, score: 5, comment: 'Auténtico folklore, recomendado.' },
-    { i: 3, score: 3, comment: 'Buen DJ, algo corto el set.' },
-  ];
-  for (const r of ratingPlan) {
-    const pr = profiles[r.i];
-    const { error } = await supabase
-      .from('ratings')
-      .insert({ artist_id: pr.profileId, client_id: client.id, score: r.score, comment: r.comment });
-    if (error) throw new Error(`ratings: ${error.message}`);
-  }
-  for (const pr of profiles) {
-    const { data: rows } = await supabase.from('ratings').select('score').eq('artist_id', pr.profileId);
-    const avg = rows.length ? rows.reduce((s, x) => s + x.score, 0) / rows.length : 0;
-    await supabase.from('artist_profiles').update({ rating_avg: avg.toFixed(2) }).eq('id', pr.profileId);
-  }
-
-  // 5) Reservas en distintos estados (fechas futuras, rango de 2 horas)
-  async function makeBooking(pr, eventType, daysAhead, status, total) {
-    const start = futureDay(daysAhead, 20);
+  // 4) Reservas (rango de 2 horas). daysOffset negativo = evento en el pasado.
+  async function makeBooking(pr, eventType, daysOffset, status, total) {
+    const start = futureDay(daysOffset, 20);
     const end = new Date(start.getTime() + 2 * 3600000);
     return insertOne('bookings', {
       client_id: client.id,
@@ -196,9 +272,57 @@ async function main() {
       total,
     });
   }
-  const bPend = await makeBooking(profiles[0], 'Boda', 10, 'pendiente', 300);
+  // Futuras: muestran el flujo activo (pendiente / confirmada / pagada)
+  await makeBooking(profiles[0], 'Boda', 10, 'pendiente', 300);
   await makeBooking(profiles[1], 'Concierto privado', 15, 'confirmada', 400);
   const bPaid = await makeBooking(profiles[2], 'Aniversario', 20, 'pagada', 360);
+
+  // Pasadas y FINALIZADAS: habilitan la calificación bilateral y aportan
+  // "contrataciones reales" (requisito para votar la verificación).
+  const finished = [];
+  for (let i = 0; i < profiles.length; i++) {
+    const fb = await makeBooking(profiles[i], 'Evento privado', -(15 + i), 'finalizada', 300);
+    finished.push({ bookingId: fb.id, artistUserId: profiles[i].userId, score: profiles[i].demoScore });
+  }
+
+  // 5) Reseñas BILATERALES sobre las reservas finalizadas (cliente ↔ artista)
+  const reviewRows = [];
+  for (const f of finished) {
+    reviewRows.push({
+      booking_id: f.bookingId,
+      rater_id: client.id,
+      ratee_id: f.artistUserId,
+      ratee_role: 'artista',
+      score: f.score,
+      comment: 'Gran presentación, cumplió lo acordado.',
+    });
+    reviewRows.push({
+      booking_id: f.bookingId,
+      rater_id: f.artistUserId,
+      ratee_id: client.id,
+      ratee_role: 'cliente',
+      score: 5,
+      comment: 'Cliente puntual y con todo claro.',
+    });
+  }
+  {
+    const { error } = await supabase.from('reviews').insert(reviewRows);
+    if (error) throw new Error(`reviews: ${error.message}`);
+  }
+
+  // 5b) Recalcular promedios desde reviews: rating_avg (artistas), reputation_avg (cliente)
+  for (const pr of profiles) {
+    const { data: rows } = await supabase
+      .from('reviews').select('score').eq('ratee_id', pr.userId).eq('ratee_role', 'artista');
+    const avg = rows.length ? rows.reduce((s, x) => s + x.score, 0) / rows.length : 0;
+    await supabase.from('artist_profiles').update({ rating_avg: avg.toFixed(2) }).eq('id', pr.profileId);
+  }
+  {
+    const { data: rows } = await supabase
+      .from('reviews').select('score').eq('ratee_id', client.id).eq('ratee_role', 'cliente');
+    const avg = rows.length ? rows.reduce((s, x) => s + x.score, 0) / rows.length : 0;
+    await supabase.from('users').update({ reputation_avg: avg.toFixed(2) }).eq('id', client.id);
+  }
 
   // 6) Pago de la reserva pagada
   await insertOne('payments', {
@@ -232,14 +356,14 @@ async function main() {
 
   // Resumen
   console.log('\n✓ Datos de prueba creados (todos en Cusco):');
-  console.log(`  - 1 cliente + ${profiles.length} artistas (contraseña: ${PASSWORD})`);
-  console.log('  - 4 calificaciones, 4 items de portafolio');
-  console.log('  - 3 reservas (pendiente / confirmada / pagada) + 1 pago');
+  console.log(`  - ${clients.length} clientes + ${profiles.length} artistas (contraseña: ${PASSWORD})`);
+  console.log('  - reseñas bilaterales sobre reservas finalizadas + portafolio por artista');
+  console.log(`  - reservas: 3 activas (pendiente/confirmada/pagada) + ${profiles.length} finalizadas + 1 pago`);
   console.log('  - 3 notificaciones, 1 conversación con 2 mensajes');
-  console.log('  - 3 artistas verificados; DJ Beat con 1/2 respaldos (sin verificar)');
-  console.log('\nCredenciales de acceso:');
-  console.log('  CLIENTE  ->  test@cliente.com  /  ' + PASSWORD);
-  console.log('  ARTISTA  ->  test@artista.com  /  ' + PASSWORD);
+  console.log('  - artistas verificados aptos para votar; DJ Beat con 1/2 respaldos (sin verificar)');
+  console.log('\nCredenciales de acceso (contraseña: ' + PASSWORD + '):');
+  console.log('  CLIENTE  ->  cliente@musicya.com');
+  console.log('  ARTISTA  ->  artista@musicya.com');
 }
 
 main()
