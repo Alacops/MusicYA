@@ -84,6 +84,13 @@ export default function ArtistDetailScreen({
   const [endorsing, setEndorsing] = useState(false);
   const [verifMsg, setVerifMsg] = useState<string | null>(null);
 
+  // Calificación
+  const [myScore, setMyScore] = useState(0);
+  const [myComment, setMyComment] = useState('');
+  const [ratingBusy, setRatingBusy] = useState(false);
+  const [ratingMsg, setRatingMsg] = useState<string | null>(null);
+  const [ratingErr, setRatingErr] = useState<string | null>(null);
+
   function loadVerification() {
     api
       .get<Verification>(`/artists/${artistId}/verification`)
@@ -123,6 +130,32 @@ export default function ArtistDetailScreen({
       setVerifMsg(e.message || 'No se pudo registrar el respaldo');
     } finally {
       setEndorsing(false);
+    }
+  }
+
+  async function calificar() {
+    if (isGuest) return requireLogin();
+    setRatingErr(null);
+    setRatingMsg(null);
+    if (myScore < 1) {
+      setRatingErr('Elige de 1 a 5 estrellas');
+      return;
+    }
+    setRatingBusy(true);
+    try {
+      await api.post(`/artists/${artistId}/ratings`, {
+        score: myScore,
+        comment: myComment.trim() || undefined,
+      });
+      setRatingMsg('¡Gracias por tu calificación!');
+      setMyScore(0);
+      setMyComment('');
+      // Recarga el perfil para reflejar la nueva reseña y el promedio
+      api.get<ArtistDetail>(`/artists/${artistId}`).then(setArtist).catch(() => {});
+    } catch (e: any) {
+      setRatingErr(e.message || 'No se pudo enviar la calificación');
+    } finally {
+      setRatingBusy(false);
     }
   }
 
@@ -314,6 +347,39 @@ export default function ArtistDetailScreen({
           </>
         )}
 
+        {/* Calificar (solo usuarios con sesión que no sean el dueño) */}
+        {!isGuest && !isOwnProfile && (
+          <>
+            <Text style={styles.sectionTitle}>Calificar</Text>
+            <View style={styles.rateCard}>
+              {ratingMsg && (
+                <View style={styles.okBox}>
+                  <Text style={styles.okText}>{ratingMsg}</Text>
+                </View>
+              )}
+              {ratingErr && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{ratingErr}</Text>
+                </View>
+              )}
+              <View style={styles.starRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <TouchableOpacity key={n} onPress={() => setMyScore(n)} activeOpacity={0.7}>
+                    <Text style={styles.star}>{n <= myScore ? '⭐' : '☆'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Field
+                label="Comentario (opcional)"
+                value={myComment}
+                onChangeText={setMyComment}
+                placeholder="Cuéntanos tu experiencia"
+              />
+              <PrimaryButton title="Enviar calificación" onPress={calificar} loading={ratingBusy} />
+            </View>
+          </>
+        )}
+
         {/* Calificaciones */}
         {artist.ratings.length > 0 && (
           <>
@@ -416,6 +482,15 @@ const styles = StyleSheet.create({
   bio: { color: colors.text, fontSize: 15, lineHeight: 22, marginBottom: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.md },
   placeholder: { color: colors.muted, fontSize: 14 },
+  rateCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  starRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.md },
+  star: { fontSize: 30 },
   listCard: { backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
   portfolioType: { color: colors.accent, fontSize: 11, fontWeight: '700' },
   portfolioTitle: { color: colors.text, fontSize: 14, marginTop: 2 },
