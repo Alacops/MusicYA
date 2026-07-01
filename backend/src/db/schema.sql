@@ -77,7 +77,9 @@ create table if not exists portfolio_items (
   title      varchar(160)
 );
 
--- Calificaciones
+-- Calificaciones (LEGADO): antes el cliente calificaba al artista de forma abierta.
+-- Sustituida por 'reviews' (bilateral y atada a una contratación finalizada). Se
+-- conserva la DDL para no romper bases existentes, pero la app ya no la usa.
 create table if not exists ratings (
   id         bigint generated always as identity primary key,
   artist_id  bigint not null references artist_profiles(id) on delete cascade,
@@ -113,6 +115,27 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 create index if not exists idx_bookings_artist_time
   on bookings (artist_id, event_date, event_end);
+
+-- Reseñas BILATERALES atadas a una contratación finalizada (flujo tipo Uber:
+-- después del evento, cliente y artista se califican mutuamente).
+-- rater_id califica a ratee_id; ratee_role = rol del calificado. Una reseña por
+-- persona y contratación (review_unique). Se declara aquí porque referencia bookings.
+create table if not exists reviews (
+  id         bigint generated always as identity primary key,
+  booking_id bigint not null references bookings(id) on delete cascade,
+  rater_id   bigint not null references users(id) on delete cascade,
+  ratee_id   bigint not null references users(id) on delete cascade,
+  ratee_role user_role not null,            -- 'artista' | 'cliente'
+  score      smallint not null check (score between 1 and 5),
+  comment    text,
+  created_at timestamptz default now(),
+  constraint review_unique unique (booking_id, rater_id),
+  constraint review_not_self check (rater_id <> ratee_id)
+);
+create index if not exists idx_reviews_ratee on reviews (ratee_id, ratee_role);
+
+-- Reputación del cliente: promedio de lo que le califican los artistas.
+alter table users add column if not exists reputation_avg numeric(3,2) default 0;
 
 -- Pagos (QR / comprobante)
 create table if not exists payments (
@@ -206,6 +229,7 @@ alter table conversations   enable row level security;
 alter table messages        enable row level security;
 alter table notifications   enable row level security;
 alter table artist_endorsements enable row level security;
+alter table reviews         enable row level security;
 
 -- Datos PÚBLICOS (visibilidad/promoción de artistas): lectura para todos.
 -- La tabla users NO se expone (contiene password_hash y datos personales).
@@ -230,6 +254,12 @@ create policy "lectura pública de respaldos"
 drop policy if exists "lectura pública de calificaciones" on ratings;
 create policy "lectura pública de calificaciones"
   on ratings for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "lectura pública de reseñas" on reviews;
+create policy "lectura pública de reseñas"
+  on reviews for select
   to anon, authenticated
   using (true);
 
