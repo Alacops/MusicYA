@@ -1,19 +1,24 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import { getViewed, type ViewedArtist } from '../behavior';
 import { useAuth } from '../auth/AuthContext';
+import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { useNotifications } from '../notifications/NotificationsContext';
 import { colors, fonts, radius, spacing, type, glow } from '../theme';
 
-const FEATURES = [
-  { icon: '🎵', title: 'Perfiles de artistas', desc: 'Portafolio, multimedia y calificaciones' },
-  { icon: '📍', title: 'Búsqueda geolocalizada', desc: 'Filtros y disponibilidad en tiempo real' },
-  { icon: '💬', title: 'Chat y notificaciones', desc: 'Mensajería instantánea y chatbot' },
-  { icon: '📅', title: 'Reservas y pagos QR', desc: 'Validación de disponibilidad y pagos' },
-  { icon: '⭐', title: 'Recomendaciones', desc: 'Sugerencias inteligentes e historial' },
+type FeatureAction = 'map' | 'chat' | 'bookings' | 'notifications' | 'copilot';
+
+const FEATURES: { icon: string; title: string; desc: string; action: FeatureAction }[] = [
+  { icon: '📍', title: 'Búsqueda geolocalizada', desc: 'Filtros y disponibilidad en tiempo real', action: 'map' },
+  { icon: '💬', title: 'Chat y mensajería', desc: 'Mensajería instantánea y chatbot', action: 'chat' },
+  { icon: '📅', title: 'Reservas y pagos QR', desc: 'Validación de disponibilidad y pagos', action: 'bookings' },
+  { icon: '🔔', title: 'Notificaciones', desc: 'Avisos de reservas y mensajes', action: 'notifications' },
+  { icon: '⭐', title: 'Recomendaciones IA', desc: 'Sugerencias inteligentes e historial', action: 'copilot' },
 ];
 
 type Artist = {
@@ -28,14 +33,20 @@ type Artist = {
 };
 
 export default function HomeScreen({
+  isGuest = false,
+  onRequireLogin,
   onOpenArtist,
+  onOpenPortfolio,
   onOpenBookings,
   onOpenMap,
   onOpenNotifications,
   onOpenChat,
   onOpenCopilot,
 }: {
+  isGuest?: boolean;
+  onRequireLogin?: () => void;
   onOpenArtist: (id: number) => void;
+  onOpenPortfolio: () => void;
   onOpenBookings: () => void;
   onOpenMap: () => void;
   onOpenNotifications: () => void;
@@ -45,35 +56,64 @@ export default function HomeScreen({
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const [artists, setArtists] = useState<Artist[] | null>(null);
+  const [viewed, setViewed] = useState<ViewedArtist[]>([]);
+  const requireLogin = onRequireLogin ?? (() => {});
+
+  // Cada módulo abre la pantalla correspondiente ya existente
+  const featureActions: Record<FeatureAction, () => void> = {
+    map: onOpenMap,
+    chat: onOpenChat,
+    bookings: onOpenBookings,
+    notifications: onOpenNotifications,
+    copilot: onOpenCopilot,
+  };
 
   useEffect(() => {
     api
       .get<Artist[]>('/artists')
       .then((list) => setArtists(Array.isArray(list) ? list : []))
       .catch(() => setArtists([]));
+    // Personalización predictiva: recupera los artistas vistos recientemente
+    getViewed().then(setViewed);
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.root}>
+      {/* Orbes de luz de marca: dan sustancia al desenfoque del vidrio líquido */}
+      <LinearGradient colors={['#FF3DD4', 'transparent']} style={styles.orbA} pointerEvents="none" />
+      <LinearGradient colors={['#27E1FF', 'transparent']} style={styles.orbB} pointerEvents="none" />
+      <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Logo size={52} style={styles.headerLogo} />
+        <Logo size={64} style={styles.headerLogo} />
         <View style={{ flex: 1 }}>
           <Text style={styles.brand}>MusicYA</Text>
           <Text style={styles.welcome}>
-            Hola, {user?.name} · {user?.role === 'artista' ? 'Artista' : 'Cliente'}
+            {isGuest
+              ? 'Explora como invitado'
+              : `Hola, ${user?.name} · ${user?.role === 'artista' ? 'Artista' : 'Cliente'}`}
           </Text>
         </View>
-        <TouchableOpacity style={styles.bell} onPress={onOpenNotifications} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.bell}
+          onPress={isGuest ? requireLogin : onOpenNotifications}
+          activeOpacity={0.85}
+        >
           <Text style={styles.bellIcon}>🔔</Text>
-          {unreadCount > 0 && (
+          {!isGuest && unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
             </View>
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.logout} onPress={logout} activeOpacity={0.85}>
-          <Text style={styles.logoutText}>Salir</Text>
-        </TouchableOpacity>
+        {isGuest ? (
+          <TouchableOpacity style={styles.logout} onPress={requireLogin} activeOpacity={0.85}>
+            <Text style={styles.logoutText}>Ingresar</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.logout} onPress={logout} activeOpacity={0.85}>
+            <Text style={styles.logoutText}>Salir</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.navRow}>
@@ -88,9 +128,52 @@ export default function HomeScreen({
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.aiBtn} onPress={onOpenCopilot} activeOpacity={0.9}>
-        <Text style={styles.aiText}>🤖 Pregúntale al asistente IA</Text>
+      <TouchableOpacity style={styles.aiTouch} onPress={onOpenCopilot} activeOpacity={0.9}>
+        <GlassCard intensity={55} style={styles.aiBtn}>
+          <Text style={styles.aiText}>🤖 Pregúntale al asistente IA</Text>
+        </GlassCard>
       </TouchableOpacity>
+
+      {!isGuest && user?.role === 'artista' && (
+        <TouchableOpacity style={styles.portfolioTouch} onPress={onOpenPortfolio} activeOpacity={0.9}>
+          <GlassCard intensity={45} style={styles.portfolioBtn}>
+            <Text style={styles.aiText}>🎨 Mi portafolio</Text>
+          </GlassCard>
+        </TouchableOpacity>
+      )}
+
+      {viewed.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Vistos recientemente</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.viewedRow}
+          >
+            {viewed.map((v) => (
+              <TouchableOpacity
+                key={v.id}
+                style={styles.viewedTouch}
+                onPress={() => onOpenArtist(v.id)}
+                activeOpacity={0.85}
+              >
+                <GlassCard style={styles.viewedChip}>
+                  <View style={styles.viewedAvatar}>
+                    <Text style={styles.avatarText}>{(v.name || '?').charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.viewedNameRow}>
+                    <Text style={styles.viewedName} numberOfLines={1}>{v.name}</Text>
+                    {v.is_verified && <VerifiedBadge />}
+                  </View>
+                  {v.genre ? (
+                    <Text style={styles.viewedGenre} numberOfLines={1}>{v.genre}</Text>
+                  ) : null}
+                </GlassCard>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       <Text style={styles.sectionTitle}>Catálogo</Text>
       {artists === null ? (
@@ -98,65 +181,96 @@ export default function HomeScreen({
       ) : artists.length === 0 ? (
         <Text style={styles.placeholder}>Aún no hay artistas registrados.</Text>
       ) : (
-        artists.map((a, i) => {
-          const rating = Number(a.rating_avg) || 0;
-          return (
-            <MotiView
-              key={a.id}
-              from={{ opacity: 0, translateY: 18, scale: 0.97 }}
-              animate={{ opacity: 1, translateY: 0, scale: 1 }}
-              transition={{ type: 'timing', duration: 360, delay: i * 70 }}
-            >
-              <TouchableOpacity
-                style={styles.artistCard}
-                onPress={() => onOpenArtist(a.id)}
-                activeOpacity={0.85}
+        <View style={styles.grid}>
+          {artists.map((a, i) => {
+            const rating = Number(a.rating_avg) || 0;
+            return (
+              <MotiView
+                key={a.id}
+                style={styles.gridItem}
+                from={{ opacity: 0, translateY: 18, scale: 0.97 }}
+                animate={{ opacity: 1, translateY: 0, scale: 1 }}
+                transition={{ type: 'timing', duration: 360, delay: i * 70 }}
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.nameRow}>
-                    <Text style={styles.artistName} numberOfLines={1}>
-                      {a.users?.name || 'Artista'}
+                <TouchableOpacity
+                  style={styles.tileTouch}
+                  onPress={() => onOpenArtist(a.id)}
+                  activeOpacity={0.85}
+                >
+                  <GlassCard style={styles.tile}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.artistName} numberOfLines={1}>
+                        {a.users?.name || 'Artista'}
+                      </Text>
+                      {a.is_verified && <VerifiedBadge />}
+                    </View>
+                    <Text style={styles.artistMeta} numberOfLines={1}>
+                      {[a.genre, a.city].filter(Boolean).join(' · ') || 'Sin datos'}
                     </Text>
-                    {a.is_verified && <VerifiedBadge />}
-                  </View>
-                  <Text style={styles.artistMeta}>
-                    {[a.genre, a.city].filter(Boolean).join(' · ') || 'Sin datos'}
-                  </Text>
-                </View>
-                <View style={styles.artistRight}>
-                  <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
-                  {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
-                </View>
-              </TouchableOpacity>
-            </MotiView>
-          );
-        })
+                    <View style={styles.tileFoot}>
+                      <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
+                      {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
+                    </View>
+                  </GlassCard>
+                </TouchableOpacity>
+              </MotiView>
+            );
+          })}
+        </View>
       )}
 
       <Text style={styles.sectionTitle}>Módulos</Text>
-      {FEATURES.map((f, i) => (
-        <MotiView
-          key={f.title}
-          from={{ opacity: 0, translateY: 18 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 360, delay: 300 + i * 70 }}
-          style={styles.card}
-        >
-          <Text style={styles.cardIcon}>{f.icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>{f.title}</Text>
-            <Text style={styles.cardDesc}>{f.desc}</Text>
-          </View>
-        </MotiView>
-      ))}
-    </ScrollView>
+      <View style={styles.grid}>
+        {FEATURES.map((f, i) => (
+          <MotiView
+            key={f.title}
+            style={styles.gridItem}
+            from={{ opacity: 0, translateY: 18 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 360, delay: 300 + i * 70 }}
+          >
+            <TouchableOpacity
+              style={styles.tileTouch}
+              onPress={featureActions[f.action]}
+              activeOpacity={0.85}
+            >
+              <GlassCard style={styles.moduleTile}>
+                <Text style={styles.cardIcon}>{f.icon}</Text>
+                <Text style={styles.cardTitle}>{f.title}</Text>
+                <Text style={styles.cardDesc}>{f.desc}</Text>
+              </GlassCard>
+            </TouchableOpacity>
+          </MotiView>
+        ))}
+      </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
+  orbA: {
+    position: 'absolute',
+    top: -80,
+    right: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    opacity: 0.5,
+  },
+  orbB: {
+    position: 'absolute',
+    top: 320,
+    left: -90,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    opacity: 0.4,
+  },
   content: { padding: spacing.lg, paddingTop: 64 },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   headerLogo: { marginRight: spacing.sm },
@@ -209,17 +323,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navText: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
-  aiBtn: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.magenta,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    ...glow(colors.magenta),
-  },
+  aiTouch: { borderRadius: radius.lg, marginBottom: spacing.md, ...glow(colors.magenta) },
+  aiBtn: { paddingVertical: 16, alignItems: 'center', borderColor: 'rgba(214,51,255,0.5)' },
   aiText: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
+  portfolioTouch: { borderRadius: radius.lg, marginBottom: spacing.lg, ...glow(colors.cyan) },
+  portfolioBtn: { paddingVertical: 16, alignItems: 'center', borderColor: 'rgba(39,225,255,0.5)' },
   sectionTitle: {
     color: colors.text,
     fontSize: type.h2,
@@ -230,17 +338,36 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   placeholder: { color: colors.muted, fontSize: 14, marginBottom: spacing.lg, fontFamily: fonts.regular },
-  artistCard: {
+  viewedRow: { gap: spacing.md, paddingBottom: spacing.md, paddingRight: spacing.sm },
+  viewedTouch: { width: 132, borderRadius: radius.lg, ...glow() },
+  viewedChip: { padding: spacing.md },
+  viewedAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  viewedNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewedName: { color: colors.text, fontSize: 14, fontFamily: fonts.bold, flexShrink: 1 },
+  viewedGenre: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: fonts.regular },
+  // Rejilla modular "Vento Grid": dos columnas que fluyen
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  gridItem: { width: '48%', marginBottom: spacing.md },
+  tileTouch: { borderRadius: radius.lg, ...glow() },
+  tile: { padding: spacing.md, minHeight: 148 },
+  tileFoot: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    ...glow(),
+    justifyContent: 'space-between',
+    marginTop: 'auto',
+    paddingTop: spacing.sm,
   },
+  moduleTile: { padding: spacing.md, minHeight: 128 },
   avatar: {
     width: 46,
     height: 46,
@@ -250,26 +377,15 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginBottom: spacing.sm,
   },
   avatarText: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   artistName: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, flexShrink: 1 },
   artistMeta: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },
-  artistRight: { alignItems: 'flex-end' },
   rating: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
-  price: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: fonts.regular },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  cardIcon: { fontSize: 28, marginRight: spacing.md },
+  price: { color: colors.muted, fontSize: 12, fontFamily: fonts.regular },
+  cardIcon: { fontSize: 28, marginBottom: spacing.sm },
   cardTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.bold },
   cardDesc: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },
 });

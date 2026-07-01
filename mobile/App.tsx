@@ -15,10 +15,12 @@ import ChatScreen from './src/screens/ChatScreen';
 import ConversationsScreen from './src/screens/ConversationsScreen';
 import CopilotScreen from './src/screens/CopilotScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MapScreen from './src/screens/MapScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
+import PortfolioScreen from './src/screens/PortfolioScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import { NotificationsProvider } from './src/notifications/NotificationsContext';
 import { SocketProvider } from './src/socket/SocketContext';
@@ -34,9 +36,19 @@ type Route =
   | { name: 'notifications' }
   | { name: 'conversations' }
   | { name: 'chat'; conversationId: number; title: string }
-  | { name: 'copilot' };
+  | { name: 'copilot' }
+  | { name: 'portfolio' };
 
-function AuthedApp() {
+// Sirve tanto al usuario autenticado como al invitado (isGuest). En modo invitado
+// las acciones que requieren cuenta (reservar, chat, notificaciones) llaman a
+// onRequireLogin en vez de navegar.
+function AuthedApp({
+  isGuest = false,
+  onRequireLogin,
+}: {
+  isGuest?: boolean;
+  onRequireLogin?: () => void;
+}) {
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const goHome = () => setRoute({ name: 'home' });
   const goBookings = () => setRoute({ name: 'bookings' });
@@ -44,8 +56,20 @@ function AuthedApp() {
   const openChat = (conversationId: number, title: string) =>
     setRoute({ name: 'chat', conversationId, title });
 
+  const requireLogin = onRequireLogin ?? (() => {});
+  // Envuelve una navegación que exige cuenta: invitado → pide login
+  const gated = (fn: () => void) => (isGuest ? requireLogin : fn);
+
   if (route.name === 'artist') {
-    return <ArtistDetailScreen artistId={route.id} onBack={goHome} onOpenConversation={openChat} />;
+    return (
+      <ArtistDetailScreen
+        artistId={route.id}
+        onBack={goHome}
+        onOpenConversation={openChat}
+        isGuest={isGuest}
+        onRequireLogin={requireLogin}
+      />
+    );
   }
   if (route.name === 'bookings') {
     return <BookingsScreen onBack={goHome} onPay={(id) => setRoute({ name: 'payment', bookingId: id })} />;
@@ -74,25 +98,32 @@ function AuthedApp() {
   if (route.name === 'copilot') {
     return <CopilotScreen onBack={goHome} />;
   }
+  if (route.name === 'portfolio') {
+    return <PortfolioScreen onBack={goHome} />;
+  }
   return (
     <HomeScreen
+      isGuest={isGuest}
+      onRequireLogin={requireLogin}
       onOpenArtist={openArtist}
-      onOpenBookings={() => setRoute({ name: 'bookings' })}
+      onOpenPortfolio={() => setRoute({ name: 'portfolio' })}
+      onOpenBookings={gated(() => setRoute({ name: 'bookings' }))}
       onOpenMap={() => setRoute({ name: 'map' })}
-      onOpenNotifications={() => setRoute({ name: 'notifications' })}
-      onOpenChat={() => setRoute({ name: 'conversations' })}
+      onOpenNotifications={gated(() => setRoute({ name: 'notifications' }))}
+      onOpenChat={gated(() => setRoute({ name: 'conversations' }))}
       onOpenCopilot={() => setRoute({ name: 'copilot' })}
     />
   );
 }
 
-// Enrutado mínimo basado en estado: si no hay sesión muestra el flujo de
-// autenticación (login/registro); si la hay, el área autenticada.
+// Enrutado basado en estado. Sin sesión: landing pública → explorar como invitado
+// o autenticarse. Con sesión: área autenticada. Los providers de socket y
+// notificaciones son inertes sin token, así que envuelven también al invitado.
 function Root() {
   const { user, loading } = useAuth();
-  const [screen, setScreen] = useState<'login' | 'register'>('login');
+  const [publicView, setPublicView] = useState<'landing' | 'login' | 'register' | 'guest'>('landing');
 
-  // Mientras se restaura la sesión guardada, evita parpadear el login
+  // Mientras se restaura la sesión guardada, evita parpadear la landing
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -101,20 +132,39 @@ function Root() {
     );
   }
 
+  let content;
   if (user) {
-    return (
-      <SocketProvider>
-        <NotificationsProvider>
-          <AuthedApp />
-        </NotificationsProvider>
-      </SocketProvider>
+    content = <AuthedApp />;
+  } else if (publicView === 'guest') {
+    content = <AuthedApp isGuest onRequireLogin={() => setPublicView('login')} />;
+  } else if (publicView === 'login') {
+    content = (
+      <LoginScreen
+        onGoRegister={() => setPublicView('register')}
+        onBack={() => setPublicView('landing')}
+      />
+    );
+  } else if (publicView === 'register') {
+    content = (
+      <RegisterScreen
+        onGoLogin={() => setPublicView('login')}
+        onBack={() => setPublicView('landing')}
+      />
+    );
+  } else {
+    content = (
+      <LandingScreen
+        onExplore={() => setPublicView('guest')}
+        onLogin={() => setPublicView('login')}
+        onRegister={() => setPublicView('register')}
+      />
     );
   }
 
-  return screen === 'login' ? (
-    <LoginScreen onGoRegister={() => setScreen('register')} />
-  ) : (
-    <RegisterScreen onGoLogin={() => setScreen('login')} />
+  return (
+    <SocketProvider>
+      <NotificationsProvider>{content}</NotificationsProvider>
+    </SocketProvider>
   );
 }
 

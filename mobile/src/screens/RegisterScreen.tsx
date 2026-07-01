@@ -18,7 +18,13 @@ const ROLES: { value: Role; label: string; desc: string }[] = [
   { value: 'artista', label: 'Artista', desc: 'Quiero ofrecer mis servicios' },
 ];
 
-export default function RegisterScreen({ onGoLogin }: { onGoLogin: () => void }) {
+export default function RegisterScreen({
+  onGoLogin,
+  onBack,
+}: {
+  onGoLogin: () => void;
+  onBack?: () => void;
+}) {
   const { register } = useAuth();
 
   const [role, setRole] = useState<Role>('cliente');
@@ -78,7 +84,12 @@ export default function RegisterScreen({ onGoLogin }: { onGoLogin: () => void })
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Logo size={110} style={styles.logo} />
+        {onBack && (
+          <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+            <Text style={styles.backLink}>← Volver</Text>
+          </TouchableOpacity>
+        )}
+        <Logo size={130} style={styles.logo} />
         <Text style={styles.title}>Crea tu cuenta</Text>
 
         {/* Selector de rol */}
@@ -172,6 +183,8 @@ export default function RegisterScreen({ onGoLogin }: { onGoLogin: () => void })
 
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingTop: 52, paddingBottom: 48, flexGrow: 1 },
+  backBtn: { marginBottom: spacing.sm },
+  backLink: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
   logo: { alignSelf: 'center', marginBottom: spacing.xs },
   brand: { color: colors.accent, fontSize: type.title, fontFamily: fonts.display, letterSpacing: -0.5 },
   title: { color: colors.text, fontSize: type.h2, fontFamily: fonts.display, marginBottom: spacing.lg, textTransform: 'uppercase', textAlign: 'center' },

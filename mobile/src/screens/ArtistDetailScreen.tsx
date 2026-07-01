@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { api } from '../api/client';
+import { recordView } from '../behavior';
 import { useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -53,12 +54,17 @@ export default function ArtistDetailScreen({
   artistId,
   onBack,
   onOpenConversation,
+  isGuest = false,
+  onRequireLogin,
 }: {
   artistId: number;
   onBack: () => void;
   onOpenConversation: (conversationId: number, title: string) => void;
+  isGuest?: boolean;
+  onRequireLogin?: () => void;
 }) {
   const { user } = useAuth();
+  const requireLogin = onRequireLogin ?? (() => {});
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -88,7 +94,16 @@ export default function ArtistDetailScreen({
   useEffect(() => {
     api
       .get<ArtistDetail>(`/artists/${artistId}`)
-      .then(setArtist)
+      .then((a) => {
+        setArtist(a);
+        // Registra la vista para personalizar el Home (comportamiento local)
+        recordView({
+          id: a.id,
+          name: a.users?.name || 'Artista',
+          genre: a.genre,
+          is_verified: a.is_verified,
+        });
+      })
       .catch((e) => setError(e.message || 'No se pudo cargar el artista'));
     loadVerification();
   }, [artistId]);
@@ -96,6 +111,7 @@ export default function ArtistDetailScreen({
   const isOwnProfile = artist != null && user != null && artist.user_id === user.id;
 
   async function respaldar() {
+    if (isGuest) return requireLogin();
     setVerifMsg(null);
     setEndorsing(true);
     try {
@@ -111,6 +127,7 @@ export default function ArtistDetailScreen({
   }
 
   async function abrirChat() {
+    if (isGuest) return requireLogin();
     if (!artist) return;
     setStartingChat(true);
     try {
@@ -124,6 +141,7 @@ export default function ArtistDetailScreen({
   }
 
   async function reservar() {
+    if (isGuest) return requireLogin();
     setBookingError(null);
     setBookingOk(null);
     if (!date || !time) {
@@ -222,7 +240,11 @@ export default function ArtistDetailScreen({
 
         {!isOwnProfile && (
           <View style={{ marginTop: spacing.sm }}>
-            <PrimaryButton title="💬 Chatear" onPress={abrirChat} loading={startingChat} />
+            <PrimaryButton
+              title={isGuest ? '🔒 Inicia sesión para chatear' : '💬 Chatear'}
+              onPress={abrirChat}
+              loading={startingChat}
+            />
           </View>
         )}
 
@@ -310,6 +332,13 @@ export default function ArtistDetailScreen({
         <Text style={styles.sectionTitle}>Reservar</Text>
         {isOwnProfile ? (
           <Text style={styles.placeholder}>Este es tu propio perfil; no puedes reservarte.</Text>
+        ) : isGuest ? (
+          <View>
+            <Text style={styles.placeholder}>Inicia sesión para contratar a este artista.</Text>
+            <View style={{ marginTop: spacing.sm }}>
+              <PrimaryButton title="🔒 Iniciar sesión" onPress={requireLogin} />
+            </View>
+          </View>
         ) : (
           <View>
             {bookingOk && (

@@ -13,7 +13,13 @@ import { Field, PrimaryButton } from '../components/form';
 import Logo from '../components/Logo';
 import { colors, fonts, type, spacing } from '../theme';
 
-export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void }) {
+export default function LoginScreen({
+  onGoRegister,
+  onBack,
+}: {
+  onGoRegister: () => void;
+  onBack?: () => void;
+}) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,6 +48,11 @@ export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {onBack && (
+          <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+            <Text style={styles.backLink}>← Volver</Text>
+          </TouchableOpacity>
+        )}
         <Logo size={200} style={styles.logo} />
         <Text style={styles.title}>Inicia sesión</Text>
         <Text style={styles.subtitle}>Contrata y promociona artistas en tiempo real</Text>
@@ -83,6 +94,8 @@ export default function LoginScreen({ onGoRegister }: { onGoRegister: () => void
 
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingTop: 56, flexGrow: 1 },
+  backBtn: { marginBottom: spacing.sm },
+  backLink: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
   logo: { alignSelf: 'center', marginBottom: spacing.sm },
   brand: { color: colors.accent, fontSize: type.hero, fontFamily: fonts.display, letterSpacing: -1 },
   title: { color: colors.text, fontSize: type.title, fontFamily: fonts.display, textTransform: 'uppercase', textAlign: 'center' },
