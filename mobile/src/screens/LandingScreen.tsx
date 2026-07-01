@@ -1,18 +1,23 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
+import VerifiedBadge from '../components/VerifiedBadge';
 import { colors, fonts, gradients, radius, spacing, type, glow } from '../theme';
 
 // Página de inicio pública (estilo agencia de booking, inspirada en AAE Music /
 // Espectalium): presenta el negocio y deja explorar sin cuenta o iniciar sesión.
 
-const STATS = [
-  { value: '+50', label: 'Artistas' },
-  { value: '8', label: 'Ciudades' },
-  { value: '4.9★', label: 'Valoración' },
-];
+type LandingArtist = {
+  id: number;
+  genre: string | null;
+  rating_avg: number | string | null;
+  is_verified?: boolean;
+  users: { name: string } | null;
+};
 
 const CATEGORIES = [
   { icon: '🎤', title: 'Músicos y cantantes', desc: 'Solistas, bandas y tributos' },
@@ -36,6 +41,27 @@ export default function LandingScreen({
   onLogin: () => void;
   onRegister: () => void;
 }) {
+  const [artists, setArtists] = useState<LandingArtist[]>([]);
+
+  // Datos reales del catálogo para las stats y los artistas destacados
+  useEffect(() => {
+    api
+      .get<LandingArtist[]>('/artists')
+      .then((a) => setArtists(Array.isArray(a) ? a : []))
+      .catch(() => setArtists([]));
+  }, []);
+
+  const total = artists.length;
+  const verified = artists.filter((a) => a.is_verified).length;
+  const featured = [...artists]
+    .sort((a, b) => (Number(b.rating_avg) || 0) - (Number(a.rating_avg) || 0))
+    .slice(0, 6);
+  const stats = [
+    { value: total ? String(total) : '—', label: 'Artistas' },
+    { value: verified ? String(verified) : '—', label: 'Verificados' },
+    { value: 'Cusco', label: 'Ciudad' },
+  ];
+
   return (
     <View style={styles.root}>
       {/* Orbes de marca detrás del vidrio líquido */}
@@ -53,13 +79,13 @@ export default function LandingScreen({
           <Logo size={150} style={styles.logo} />
           <Text style={styles.brand}>MusicYA</Text>
           <Text style={styles.tagline}>
-            Contrata artistas y músicos en tiempo real, fácil y sin intermediarios.
+            Contrata músicos y artistas de Cusco en tiempo real, fácil y sin intermediarios.
           </Text>
         </MotiView>
 
-        {/* Stats */}
+        {/* Stats (datos reales del catálogo) */}
         <View style={styles.statsRow}>
-          {STATS.map((s) => (
+          {stats.map((s) => (
             <GlassCard key={s.label} style={styles.statCard}>
               <Text style={styles.statValue}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
@@ -87,6 +113,50 @@ export default function LandingScreen({
             <Text style={styles.ctaGhostText}>Crear cuenta</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Artistas destacados (reales, mejor valorados) */}
+        {featured.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Artistas destacados</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.featuredRow}
+            >
+              {featured.map((a) => {
+                const rating = Number(a.rating_avg) || 0;
+                return (
+                  <TouchableOpacity
+                    key={a.id}
+                    style={styles.featuredTouch}
+                    onPress={onExplore}
+                    activeOpacity={0.85}
+                  >
+                    <GlassCard style={styles.featuredCard}>
+                      <View style={styles.featuredAvatar}>
+                        <Text style={styles.featuredAvatarText}>
+                          {(a.users?.name || '?').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.featuredNameRow}>
+                        <Text style={styles.featuredName} numberOfLines={1}>
+                          {a.users?.name || 'Artista'}
+                        </Text>
+                        {a.is_verified && <VerifiedBadge />}
+                      </View>
+                      <Text style={styles.featuredMeta} numberOfLines={1}>
+                        {a.genre || 'Artista'}
+                      </Text>
+                      <Text style={styles.featuredRating}>
+                        {rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}
+                      </Text>
+                    </GlassCard>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </>
+        )}
 
         {/* Categorías / servicios */}
         <Text style={styles.sectionTitle}>Qué puedes contratar</Text>
@@ -215,6 +285,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
+  featuredRow: { gap: spacing.md, paddingBottom: spacing.sm, paddingRight: spacing.sm },
+  featuredTouch: { width: 150, borderRadius: radius.lg, ...glow() },
+  featuredCard: { padding: spacing.md },
+  featuredAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  featuredAvatarText: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
+  featuredNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  featuredName: { color: colors.text, fontSize: 15, fontFamily: fonts.bold, flexShrink: 1 },
+  featuredMeta: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: fonts.regular },
+  featuredRating: { color: colors.accent, fontSize: 13, fontFamily: fonts.bold, marginTop: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   gridItem: { width: '48%', marginBottom: spacing.md },
   catTile: { padding: spacing.md, minHeight: 128 },
