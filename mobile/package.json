@@ -12,6 +12,7 @@
     "expo-font": "~56.0.7",
     "expo-linear-gradient": "~56.0.4",
     "expo-status-bar": "~56.0.4",
+    "expo-video": "~56.1.4",
     "moti": "^0.30.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,6 +15,7 @@ import { api } from '../api/client';
 import { recordView } from '../behavior';
 import { useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
+import PortfolioVideo from '../components/PortfolioVideo';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { colors, fonts, spacing } from '../theme';
 
@@ -33,6 +36,7 @@ type ArtistDetail = {
   city: string | null;
   rating_avg: number | string | null;
   is_available: boolean;
+  avatar_url?: string | null;
   is_verified?: boolean;
   social_links?: Record<string, string> | null;
   verification_doc_url?: string | null;
@@ -211,11 +215,15 @@ export default function ArtistDetailScreen({
 
         {/* Cabecera */}
         <View style={styles.headerRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {(artist.users?.name || '?').charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {artist.avatar_url ? (
+            <Image source={{ uri: artist.avatar_url }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {(artist.users?.name || '?').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>{artist.users?.name || 'Artista'}</Text>
@@ -303,16 +311,35 @@ export default function ArtistDetailScreen({
           </View>
         )}
 
-        {/* Portafolio */}
+        {/* Portafolio (galería multimedia) */}
         {artist.portfolio.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Portafolio</Text>
-            {artist.portfolio.map((p) => (
-              <View key={p.id} style={styles.listCard}>
-                <Text style={styles.portfolioType}>{p.type.toUpperCase()}</Text>
-                <Text style={styles.portfolioTitle}>{p.title || p.url}</Text>
-              </View>
-            ))}
+            {artist.portfolio.map((p) => {
+              if (p.type === 'imagen') {
+                return (
+                  <View key={p.id} style={styles.mediaCard}>
+                    <Image source={{ uri: p.url }} style={styles.mediaImage} resizeMode="cover" />
+                    {p.title ? <Text style={styles.mediaCaption}>{p.title}</Text> : null}
+                  </View>
+                );
+              }
+              if (p.type === 'video') {
+                return <PortfolioVideo key={p.id} url={p.url} title={p.title} />;
+              }
+              // audio u otros: fila con enlace reproducible
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.listCard}
+                  onPress={() => Linking.openURL(p.url)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.portfolioType}>♪ {p.type.toUpperCase()}</Text>
+                  <Text style={styles.portfolioTitle}>{p.title || 'Escuchar audio'}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </>
         )}
 
@@ -421,6 +448,21 @@ const styles = StyleSheet.create({
   listCard: { backgroundColor: colors.surface, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
   portfolioType: { color: colors.accent, fontSize: 11, fontWeight: '700' },
   portfolioTitle: { color: colors.text, fontSize: 14, marginTop: 2 },
+  mediaCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  mediaImage: { width: '100%', height: 200, backgroundColor: colors.surfaceAlt },
+  mediaCaption: {
+    color: colors.muted,
+    fontSize: 13,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
   ratingStars: { fontSize: 14 },
   ratingComment: { color: colors.text, fontSize: 14, marginTop: 4 },
   ratingAuthor: { color: colors.muted, fontSize: 12, marginTop: 4 },

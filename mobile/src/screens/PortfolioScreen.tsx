@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -26,6 +27,7 @@ type ArtistProfile = {
   bio: string | null;
   hourly_rate: number | null;
   is_available: boolean;
+  avatar_url: string | null;
   social_links: Record<string, string> | null;
   verification_doc_url: string | null;
   portfolio?: { type: string; url: string; title: string | null }[];
@@ -45,6 +47,7 @@ export default function PortfolioScreen({ onBack }: { onBack: () => void }) {
   const [bio, setBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [available, setAvailable] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [instagram, setInstagram] = useState('');
   const [youtube, setYoutube] = useState('');
   const [tiktok, setTiktok] = useState('');
@@ -65,6 +68,7 @@ export default function PortfolioScreen({ onBack }: { onBack: () => void }) {
         setBio(p.bio || '');
         setHourlyRate(p.hourly_rate != null ? String(p.hourly_rate) : '');
         setAvailable(p.is_available);
+        setAvatarUrl(p.avatar_url || '');
         const s = p.social_links || {};
         setInstagram(s.instagram || '');
         setYoutube(s.youtube || '');
@@ -116,6 +120,7 @@ export default function PortfolioScreen({ onBack }: { onBack: () => void }) {
       bio: bio.trim() || null,
       hourly_rate: Number.isFinite(rate) && rate > 0 ? rate : null,
       is_available: available,
+      avatar_url: avatarUrl.trim() || null,
       social_links: Object.keys(social).length ? social : null,
       verification_doc_url: docUrl.trim() || null,
       portfolio: items
@@ -167,6 +172,26 @@ export default function PortfolioScreen({ onBack }: { onBack: () => void }) {
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
+
+        {/* Foto de perfil */}
+        <View style={styles.avatarRow}>
+          {avatarUrl.trim() ? (
+            <Image source={{ uri: avatarUrl.trim() }} style={styles.avatarPreview} />
+          ) : (
+            <View style={[styles.avatarPreview, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarPlaceholderText}>Sin foto</Text>
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Field
+              label="Foto de perfil (URL)"
+              value={avatarUrl}
+              onChangeText={setAvatarUrl}
+              placeholder="https://…/foto.jpg"
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
 
         <Field label="Género musical" value={genre} onChangeText={setGenre} placeholder="Rock, Cumbia, Jazz…" />
         <Field label="Ciudad" value={city} onChangeText={setCity} placeholder="Cusco" />
@@ -250,6 +275,17 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: type.title, fontFamily: fonts.display, textTransform: 'uppercase' },
   subtitle: { color: colors.muted, fontSize: 14, marginTop: 4, marginBottom: spacing.lg, fontFamily: fonts.regular },
   label: { color: colors.muted, fontSize: 13, marginBottom: 6, fontFamily: fonts.medium },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xs },
+  avatarPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  avatarPlaceholderText: { color: colors.muted, fontSize: 10, fontFamily: fonts.medium },
   bioInput: { minHeight: 96, textAlignVertical: 'top' },
   toggle: { borderRadius: radius.md, borderWidth: 2, paddingVertical: 14, alignItems: 'center', marginBottom: spacing.sm },
   toggleOn: { borderColor: colors.cyan, backgroundColor: 'rgba(39,225,255,0.08)' },

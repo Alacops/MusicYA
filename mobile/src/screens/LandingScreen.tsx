@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
 import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
@@ -16,6 +16,7 @@ type LandingArtist = {
   genre: string | null;
   rating_avg: number | string | null;
   is_verified?: boolean;
+  avatar_url?: string | null;
   users: { name: string } | null;
 };
 
@@ -133,11 +134,15 @@ export default function LandingScreen({
                     activeOpacity={0.85}
                   >
                     <GlassCard style={styles.featuredCard}>
-                      <View style={styles.featuredAvatar}>
-                        <Text style={styles.featuredAvatarText}>
-                          {(a.users?.name || '?').charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
+                      {a.avatar_url ? (
+                        <Image source={{ uri: a.avatar_url }} style={styles.featuredAvatar} />
+                      ) : (
+                        <View style={styles.featuredAvatar}>
+                          <Text style={styles.featuredAvatarText}>
+                            {(a.users?.name || '?').charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                       <View style={styles.featuredNameRow}>
                         <Text style={styles.featuredName} numberOfLines={1}>
                           {a.users?.name || 'Artista'}
