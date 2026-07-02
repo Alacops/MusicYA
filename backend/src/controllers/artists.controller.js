@@ -95,7 +95,7 @@ async function create(req, res, next) {
       });
     }
 
-    const { genre, bio, hourly_rate, city, lat, lng, portfolio } = req.body;
+    const { genre, bio, hourly_rate, city, lat, lng, avatar_url, portfolio } = req.body;
 
     const { data: profile, error } = await supabase
       .from('artist_profiles')
@@ -107,6 +107,7 @@ async function create(req, res, next) {
         city: city || 'Cusco',
         lat: lat ?? null,
         lng: lng ?? null,
+        avatar_url: avatar_url || null,
       })
       .select('*')
       .single();
@@ -141,7 +142,7 @@ async function update(req, res, next) {
     // validación comunitaria); el artista solo aporta redes y documento.
     const allowed = [
       'genre', 'bio', 'hourly_rate', 'city', 'lat', 'lng', 'is_available',
-      'social_links', 'verification_doc_url',
+      'social_links', 'verification_doc_url', 'avatar_url',
     ];
     const updates = {};
     for (const field of allowed) {

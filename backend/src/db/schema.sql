@@ -41,6 +41,7 @@ create table if not exists artist_profiles (
   lng          double precision,
   rating_avg   numeric(3,2) default 0,
   is_available boolean default true,
+  avatar_url   varchar(500),   -- foto de perfil del artista
   -- Verificación por validación comunitaria
   is_verified          boolean default false,
   verified_at          timestamptz,
@@ -54,6 +55,7 @@ alter table artist_profiles add column if not exists is_verified boolean default
 alter table artist_profiles add column if not exists verified_at timestamptz;
 alter table artist_profiles add column if not exists social_links jsonb;
 alter table artist_profiles add column if not exists verification_doc_url varchar(500);
+alter table artist_profiles add column if not exists avatar_url varchar(500);
 
 -- Respaldos comunitarios: un artista verificado avala la autenticidad de otro.
 -- Al reunir suficientes respaldos de artistas verificados, el perfil se verifica.

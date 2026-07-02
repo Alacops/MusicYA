@@ -24,6 +24,17 @@ const CLIENTS = [
   { email: 'jorge.flores@musicya.com', name: 'Jorge Flores', phone: '+51 984 555 666' },
 ];
 
+// Medios de demostración (stock público y fiable). El usuario puede reemplazarlos
+// luego por sus URLs reales desde "Mi portafolio" en la app.
+//   - Avatares: i.pravatar.cc (fotos de rostro)
+//   - Imágenes: picsum.photos (fotos con semilla estable)
+//   - Videos:   gtv-videos-bucket de Google (mp4 con reproducción directa)
+//   - Audio:    SoundHelix (mp3 de muestra)
+const VID = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample';
+const img = (seed) => `https://picsum.photos/seed/${seed}/800/600`;
+const avatar = (n) => `https://i.pravatar.cc/300?img=${n}`;
+const audio = (n) => `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${n}.mp3`;
+
 // Todos los artistas en CUSCO, con coordenadas reales de distintos barrios para
 // que se distribuyan en el mapa en tiempo real (búsqueda geolocalizada Haversine).
 // demoScore = nota que el cliente principal les deja en la reserva finalizada.
@@ -39,11 +50,13 @@ const ARTISTS = [
     lng: -71.9785,
     verified: true,
     demoScore: 4,
+    avatar_url: avatar(12),
     social: { instagram: '@artistaprueba', youtube: 'Artista Prueba' },
     doc: 'https://demo.musicya/doc-artista-prueba.pdf',
     portfolio: [
-      { type: 'audio', url: 'https://demo.musicya/cumbia-en-vivo.mp3', title: 'En vivo' },
-      { type: 'imagen', url: 'https://demo.musicya/banda.jpg', title: 'La banda' },
+      { type: 'video', url: `${VID}/ForBiggerJoyrides.mp4`, title: 'Cumbia en vivo' },
+      { type: 'imagen', url: img('cumbia-banda'), title: 'La banda' },
+      { type: 'audio', url: audio(1), title: 'En vivo' },
     ],
   },
   {
@@ -57,8 +70,12 @@ const ARTISTS = [
     lng: -71.9558,
     verified: true,
     demoScore: 5,
+    avatar_url: avatar(5),
     social: { instagram: '@anarock' },
-    portfolio: [{ type: 'video', url: 'https://demo.musicya/rock-clip.mp4', title: 'Demo en vivo' }],
+    portfolio: [
+      { type: 'video', url: `${VID}/ForBiggerBlazes.mp4`, title: 'Demo en vivo' },
+      { type: 'imagen', url: img('rock-show'), title: 'En el escenario' },
+    ],
   },
   {
     email: 'luis.folk@musicya.com',
@@ -71,8 +88,12 @@ const ARTISTS = [
     lng: -71.9737,
     verified: true,
     demoScore: 5,
+    avatar_url: avatar(13),
     doc: 'https://demo.musicya/doc-luis-folk.pdf',
-    portfolio: [{ type: 'audio', url: 'https://demo.musicya/quena.mp3', title: 'Solo de quena' }],
+    portfolio: [
+      { type: 'imagen', url: img('andes-quena'), title: 'Presentación en San Blas' },
+      { type: 'audio', url: audio(3), title: 'Solo de quena' },
+    ],
   },
   {
     email: 'dj.beat@musicya.com',
@@ -85,8 +106,12 @@ const ARTISTS = [
     lng: -71.9430,
     verified: false, // sin verificar: tendrá 1 respaldo (1/2) para demostrar el flujo
     demoScore: 3,
+    avatar_url: avatar(15),
     social: { instagram: '@djbeat', tiktok: '@djbeatcusco' },
-    portfolio: [],
+    portfolio: [
+      { type: 'video', url: `${VID}/ForBiggerFun.mp4`, title: 'Set en vivo' },
+      { type: 'imagen', url: img('dj-lights'), title: 'Fiesta electrónica' },
+    ],
   },
   {
     email: 'mariachi.sol@musicya.com',
@@ -99,9 +124,14 @@ const ARTISTS = [
     lng: -71.9680,
     verified: true,
     demoScore: 5,
+    avatar_url: avatar(52),
     social: { instagram: '@mariachisolcusco' },
     doc: 'https://demo.musicya/doc-mariachi-sol.pdf',
-    portfolio: [{ type: 'audio', url: 'https://demo.musicya/serenata.mp3', title: 'Serenata' }],
+    portfolio: [
+      { type: 'imagen', url: img('mariachi'), title: 'Serenata' },
+      { type: 'video', url: `${VID}/ForBiggerMeltdowns.mp4`, title: 'Boda en vivo' },
+      { type: 'audio', url: audio(5), title: 'Serenata' },
+    ],
   },
   {
     email: 'valentina.rios@musicya.com',
@@ -114,8 +144,12 @@ const ARTISTS = [
     lng: -71.9490,
     verified: true,
     demoScore: 5,
+    avatar_url: avatar(45),
     social: { instagram: '@valentinariosmusic', tiktok: '@valeriosmusic' },
-    portfolio: [{ type: 'video', url: 'https://demo.musicya/valentina-live.mp4', title: 'En vivo' }],
+    portfolio: [
+      { type: 'video', url: `${VID}/ForBiggerEscapes.mp4`, title: 'En vivo' },
+      { type: 'imagen', url: img('singer-pop'), title: 'Ceremonia' },
+    ],
   },
   {
     email: 'miguel.trompeta@musicya.com',
@@ -128,8 +162,12 @@ const ARTISTS = [
     lng: -71.9820,
     verified: false,
     demoScore: 4,
+    avatar_url: avatar(53),
     social: { instagram: '@migueltrompeta' },
-    portfolio: [{ type: 'audio', url: 'https://demo.musicya/trompeta-solo.mp3', title: 'Solo de trompeta' }],
+    portfolio: [
+      { type: 'imagen', url: img('trumpet'), title: 'Desfile' },
+      { type: 'audio', url: audio(7), title: 'Solo de trompeta' },
+    ],
   },
   {
     email: 'showkids@musicya.com',
@@ -142,8 +180,12 @@ const ARTISTS = [
     lng: -71.9600,
     verified: false,
     demoScore: 4,
+    avatar_url: avatar(60),
     social: { instagram: '@showkidscusco', tiktok: '@showkidscusco' },
-    portfolio: [{ type: 'imagen', url: 'https://demo.musicya/showkids.jpg', title: 'Fiesta infantil' }],
+    portfolio: [
+      { type: 'imagen', url: img('kids-party'), title: 'Fiesta infantil' },
+      { type: 'video', url: `${VID}/ForBiggerJoyrides.mp4`, title: 'Show de globos' },
+    ],
   },
   {
     email: 'sabor.latino@musicya.com',
@@ -156,8 +198,12 @@ const ARTISTS = [
     lng: -71.9700,
     verified: false,
     demoScore: 4,
+    avatar_url: avatar(33),
     social: { instagram: '@saborlatinocusco' },
-    portfolio: [{ type: 'video', url: 'https://demo.musicya/salsa-clip.mp4', title: 'Salsa en vivo' }],
+    portfolio: [
+      { type: 'video', url: `${VID}/ForBiggerBlazes.mp4`, title: 'Salsa en vivo' },
+      { type: 'imagen', url: img('salsa-band'), title: 'Matrimonio' },
+    ],
   },
 ];
 
@@ -229,6 +275,7 @@ async function main() {
       is_available: a.is_available ?? true,
       is_verified: a.verified === true,
       verified_at: a.verified === true ? new Date().toISOString() : null,
+      avatar_url: a.avatar_url || null,
       social_links: a.social || null,
       verification_doc_url: a.doc || null,
       // 60 días de antigüedad: cuentas consolidadas que cumplen el requisito de
