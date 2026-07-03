@@ -411,4 +411,4 @@ se une automáticamente a su sala personal `user:<id>` para recibir notificacion
 
 Todos los controladores están implementados y verificados contra Supabase. Endurecimiento
 aplicado: handshake de Socket.IO autenticado con JWT, notificaciones centralizadas
-(persistencia + tiempo real) y control de solapamiento de reservas por rango horario.
+(persistencia + tiempo real) y control de solapamiento de reservas por rango horario..
