@@ -23,10 +23,11 @@ async function insertPortfolio(artistId, portfolio) {
 }
 
 // GET /api/artists
-// Filtros opcionales por query: ?genre=Rock&city=Cusco&available=true
+// Filtros opcionales por query:
+//   ?genre=Rock&city=Cusco&available=true&maxPrice=200&district=Wanchaq&eventType=Bodas
 async function list(req, res, next) {
   try {
-    const { genre, city, available } = req.query;
+    const { genre, city, available, maxPrice, district, eventType } = req.query;
 
     let query = supabase
       .from('artist_profiles')
@@ -37,6 +38,12 @@ async function list(req, res, next) {
     if (genre) query = query.ilike('genre', `%${genre}%`);
     if (city) query = query.ilike('city', `%${city}%`);
     if (available !== undefined) query = query.eq('is_available', available === 'true');
+    if (maxPrice !== undefined && maxPrice !== '' && Number.isFinite(Number(maxPrice))) {
+      query = query.lte('hourly_rate', Number(maxPrice));
+    }
+    if (district) query = query.ilike('district', `%${district}%`);
+    // event_types es un arreglo: filtra a los artistas que atienden ese tipo de evento
+    if (eventType) query = query.contains('event_types', [eventType]);
 
     const { data, error } = await query;
     if (error) return next(error);
@@ -95,7 +102,7 @@ async function create(req, res, next) {
       });
     }
 
-    const { genre, bio, hourly_rate, city, lat, lng, avatar_url, portfolio } = req.body;
+    const { genre, bio, hourly_rate, city, district, event_types, lat, lng, avatar_url, portfolio } = req.body;
 
     const { data: profile, error } = await supabase
       .from('artist_profiles')
@@ -105,6 +112,8 @@ async function create(req, res, next) {
         bio: bio || null,
         hourly_rate: hourly_rate ?? null,
         city: city || 'Cusco',
+        district: district || null,
+        event_types: Array.isArray(event_types) ? event_types : null,
         lat: lat ?? null,
         lng: lng ?? null,
         avatar_url: avatar_url || null,
@@ -141,8 +150,8 @@ async function update(req, res, next) {
     // Nota: 'is_verified'/'verified_at' NO son editables aquí (los gobierna la
     // validación comunitaria); el artista solo aporta redes y documento.
     const allowed = [
-      'genre', 'bio', 'hourly_rate', 'city', 'lat', 'lng', 'is_available',
-      'social_links', 'verification_doc_url', 'avatar_url',
+      'genre', 'bio', 'hourly_rate', 'city', 'district', 'event_types', 'lat', 'lng',
+      'is_available', 'social_links', 'verification_doc_url', 'avatar_url',
     ];
     const updates = {};
     for (const field of allowed) {

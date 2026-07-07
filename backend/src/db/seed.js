@@ -44,8 +44,10 @@ const ARTISTS = [
     name: 'Artista Prueba',
     genre: 'Cumbia',
     city: 'Cusco',
+    district: 'Cusco (Centro)',
+    event_types: ['Bodas', 'Fiestas privadas'],
     hourly_rate: 150,
-    bio: 'Orquesta de cumbia y salsa para bodas, fiestas y aniversarios.',
+    bio: 'Orquesta de cumbia y salsa con más de 10 años animando bodas, fiestas patronales y aniversarios en todo Cusco. Contamos con seis músicos en vivo, equipo de sonido e iluminación propios, y un repertorio que va desde la cumbia clásica peruana hasta los éxitos del momento. Nos adaptamos a la duración y el estilo de tu evento para que la pista no pare de bailar. Atendemos Cusco y provincias cercanas, coordinamos el repertorio contigo con anticipación y ofrecemos paquetes por horas según lo que necesites.',
     lat: -13.5163, // Plaza de Armas
     lng: -71.9785,
     verified: true,
@@ -64,8 +66,10 @@ const ARTISTS = [
     name: 'Ana Rock',
     genre: 'Rock',
     city: 'Cusco',
+    district: 'Wanchaq',
+    event_types: ['Conciertos', 'Fiestas privadas'],
     hourly_rate: 200,
-    bio: 'Banda de rock en español e inglés para eventos privados.',
+    bio: 'Banda de rock en español e inglés ideal para eventos privados, bares y festivales. Nuestro repertorio recorre desde clásicos de los 80 y 90 hasta rock actual, siempre con energía y una puesta en escena cuidada. Incluimos voz, dos guitarras, bajo y batería, y podemos preparar canciones especiales a pedido para tu celebración. Tenemos experiencia en bares, matrimonios y festivales, llevamos nuestro propio backline y hacemos una prueba de sonido previa para que todo salga perfecto.',
     lat: -13.5283, // Wanchaq
     lng: -71.9558,
     verified: true,
@@ -82,8 +86,10 @@ const ARTISTS = [
     name: 'Luis Folklore',
     genre: 'Folklore Andino',
     city: 'Cusco',
+    district: 'Cusco (Centro)',
+    event_types: ['Bodas', 'Eventos culturales'],
     hourly_rate: 180,
-    bio: 'Música andina tradicional: zampoña, charango y quena.',
+    bio: 'Conjunto de música andina tradicional con zampoña, charango, quena y percusión, dedicado a preservar el folklore cusqueño. Amenizamos matrimonios, ceremonias, recepciones turísticas y actos culturales con un repertorio auténtico de huaynos, sikuris y música de los Andes. Vestimos trajes típicos y ofrecemos también fusiones contemporáneas para públicos de todas las edades. Ideal para eventos con visitantes que buscan una experiencia cultural genuina; nos acomodamos a ceremonias íntimas o presentaciones de escenario.',
     lat: -13.5145, // San Blas
     lng: -71.9737,
     verified: true,
@@ -100,8 +106,10 @@ const ARTISTS = [
     name: 'DJ Beat',
     genre: 'Electrónica',
     city: 'Cusco',
+    district: 'San Sebastián',
+    event_types: ['Fiestas privadas', 'Conciertos'],
     hourly_rate: 250,
-    bio: 'DJ de electrónica y house para discotecas y fiestas.',
+    bio: 'DJ de electrónica, house y open format para discotecas, after parties y fiestas privadas. Mezclo en vivo leyendo a la pista para mantener la energía toda la noche, con transiciones limpias y un set que combina hits y sonidos underground. Llevo controladora, cabina e iluminación LED, y armo el ambiente perfecto según el tipo de evento. Puedo incluir humo, cañón de luces y micrófono para animación, y preparo una lista personalizada con los géneros que prefieras.',
     lat: -13.5238, // Av. de la Cultura (Magisterio)
     lng: -71.9430,
     verified: false, // sin verificar: tendrá 1 respaldo (1/2) para demostrar el flujo
@@ -118,8 +126,10 @@ const ARTISTS = [
     name: 'Mariachi Sol de Cusco',
     genre: 'Mariachi',
     city: 'Cusco',
+    district: 'Santiago',
+    event_types: ['Serenatas', 'Bodas'],
     hourly_rate: 300,
-    bio: 'Mariachi tradicional para serenatas, bodas y aniversarios.',
+    bio: 'Mariachi tradicional para serenatas, bodas, cumpleaños y aniversarios, con trajes de gala y trompetas, violines y guitarrón en vivo. Interpretamos los clásicos de la música mexicana y peruana que emocionan en cualquier ocasión, y preparamos serenatas sorpresa a la hora que necesites. Puntualidad y una presentación impecable garantizadas. Ofrecemos paquetes de canciones a elección, nos desplazamos a cualquier distrito de Cusco y coordinamos la hora exacta para que la sorpresa sea perfecta.',
     lat: -13.5195, // Santiago
     lng: -71.9680,
     verified: true,
@@ -138,8 +148,10 @@ const ARTISTS = [
     name: 'Valentina Ríos',
     genre: 'Cantante / Pop',
     city: 'Cusco',
+    district: 'Wanchaq',
+    event_types: ['Bodas', 'Eventos corporativos'],
     hourly_rate: 220,
-    bio: 'Cantante solista de pop y baladas para eventos y ceremonias.',
+    bio: 'Cantante solista de pop y baladas para bodas, ceremonias y eventos corporativos, con voz versátil en español e inglés. Acompaño mis presentaciones con pistas profesionales o guitarra en vivo, creando momentos íntimos para el primer baile o la entrada de los novios. Personalizo el repertorio a tu historia para que cada canción tenga un significado especial. Trabajo con ensayo previo, aporto mi propio equipo de audio para grupos pequeños y me adapto tanto a ceremonias religiosas como a recepciones y after office.',
     lat: -13.5320, // Ttio
     lng: -71.9490,
     verified: true,
@@ -156,8 +168,10 @@ const ARTISTS = [
     name: 'Miguel Ángel Trompeta',
     genre: 'Trompetista',
     city: 'Cusco',
+    district: 'Cusco (Centro)',
+    event_types: ['Eventos corporativos', 'Conciertos'],
     hourly_rate: 160,
-    bio: 'Trompetista para orquestas, misas, desfiles y eventos corporativos.',
+    bio: 'Trompetista profesional con formación en conservatorio, disponible para orquestas, misas, desfiles cívicos y eventos corporativos. Aporto un sonido cálido y potente tanto en repertorio clásico y sacro como en cumbia, salsa y música popular. Trabajo como solista o refuerzo de otras agrupaciones, y me integro con facilidad al formato que tu evento requiera. Cuento con repertorio para protocolo, honores y música bailable, y tengo disponibilidad para presentaciones dentro y fuera de la ciudad.',
     lat: -13.5100, // San Cristóbal
     lng: -71.9820,
     verified: false,
@@ -174,8 +188,10 @@ const ARTISTS = [
     name: 'Show Kids Cusco',
     genre: 'Animación infantil',
     city: 'Cusco',
+    district: 'San Jerónimo',
+    event_types: ['Fiestas infantiles'],
     hourly_rate: 140,
-    bio: 'Animadores para fiestas infantiles: juegos, magia y globoflexia.',
+    bio: 'Equipo de animación para fiestas infantiles con juegos, concursos, show de magia, globoflexia y personajes favoritos de los niños. Nos encargamos de mantener a los pequeños entretenidos y seguros mientras los papás disfrutan, con dinámicas adaptadas a cada edad. Incluimos sonido, premios y toda la energía para que el cumpleaños sea inolvidable. Contamos con animadores certificados en primeros auxilios, materiales desinfectados y paquetes de 1 a 3 horas según el número de niños.',
     lat: -13.5350, // Larapa
     lng: -71.9600,
     verified: false,
@@ -192,8 +208,10 @@ const ARTISTS = [
     name: 'Grupo Sabor Latino',
     genre: 'Salsa',
     city: 'Cusco',
+    district: 'Cusco (Centro)',
+    event_types: ['Bodas', 'Eventos corporativos', 'Fiestas privadas'],
     hourly_rate: 280,
-    bio: 'Orquesta de salsa y timba para fiestas y matrimonios.',
+    bio: 'Orquesta de salsa y timba con sección completa de metales, coros y percusión afrocaribeña para fiestas, matrimonios y eventos empresariales. Traemos el sabor del Caribe a Cusco con un show bailable de principio a fin y clásicos de la salsa brava y romántica. Contamos con equipo profesional de sonido y podemos incluir animación para llenar la pista toda la noche. Ofrecemos formato orquesta completa o versión reducida según tu presupuesto, y coordinamos horarios flexibles para eventos que se extienden hasta la madrugada.',
     lat: -13.5260, // Centro
     lng: -71.9700,
     verified: false,
@@ -268,6 +286,8 @@ async function main() {
       user_id: u.id,
       genre: a.genre,
       city: a.city,
+      district: a.district ?? null,
+      event_types: a.event_types ?? null,
       hourly_rate: a.hourly_rate,
       bio: a.bio,
       lat: a.lat ?? null,
@@ -291,25 +311,51 @@ async function main() {
     profiles.push({ ...a, userId: u.id, profileId: p.id });
   }
 
-  // 3b) Respaldo comunitario de demo: un artista verificado avala a DJ Beat
-  //     (queda en 1/2, para mostrar el flujo de verificación en la app).
+  // 3b) Respaldos comunitarios: cada artista VERIFICADO muestra quiénes lo
+  //     respaldaron (mínimo 3 artistas verificados). DJ Beat queda en 2/3 —
+  //     "aún por verificar"— para exhibir el flujo de verificación en la app.
   {
-    const endorser = profiles[2]; // Luis Folklore (verificado)
-    const target = profiles[3]; // DJ Beat (sin verificar)
-    const { error } = await supabase.from('artist_endorsements').insert({
-      artist_id: target.profileId,
-      endorser_id: endorser.profileId,
-      comment: 'Lo vi tocar en vivo, es auténtico.',
-    });
+    const verifiedProfiles = profiles.filter((p) => p.verified === true);
+    const ENDORSE_COMMENTS = [
+      'Toca increíble, lo recomiendo totalmente.',
+      'Lo vi en vivo, es 100% auténtico.',
+      'Gran profesional, cumple con lo que promete.',
+      'Excelente calidad y muy responsable.',
+      'Un artista de confianza, respaldo su trabajo.',
+    ];
+    // Un artista no puede respaldarse a sí mismo: se toman otros verificados.
+    const pickEndorsers = (target, n) =>
+      verifiedProfiles.filter((p) => p.profileId !== target.profileId).slice(0, n);
+
+    const endorseRows = [];
+    let ci = 0;
+    for (const target of verifiedProfiles) {
+      for (const endorser of pickEndorsers(target, 3)) {
+        endorseRows.push({
+          artist_id: target.profileId,
+          endorser_id: endorser.profileId,
+          comment: ENDORSE_COMMENTS[ci++ % ENDORSE_COMMENTS.length],
+        });
+      }
+    }
+    // DJ Beat (sin verificar): 2 respaldos → 2/3
+    for (const endorser of pickEndorsers(profiles[3], 2)) {
+      endorseRows.push({
+        artist_id: profiles[3].profileId,
+        endorser_id: endorser.profileId,
+        comment: ENDORSE_COMMENTS[ci++ % ENDORSE_COMMENTS.length],
+      });
+    }
+    const { error } = await supabase.from('artist_endorsements').insert(endorseRows);
     if (error) throw new Error(`artist_endorsements: ${error.message}`);
   }
 
   // 4) Reservas (rango de 2 horas). daysOffset negativo = evento en el pasado.
-  async function makeBooking(pr, eventType, daysOffset, status, total) {
+  async function makeBooking(pr, eventType, daysOffset, status, total, clientId = client.id) {
     const start = futureDay(daysOffset, 20);
     const end = new Date(start.getTime() + 2 * 3600000);
     return insertOne('bookings', {
-      client_id: client.id,
+      client_id: clientId,
       artist_id: pr.profileId,
       event_type: eventType,
       event_date: start.toISOString(),
@@ -351,6 +397,49 @@ async function main() {
       score: 5,
       comment: 'Cliente puntual y con todo claro.',
     });
+  }
+
+  // 5b) Reseñas ADICIONALES de otros clientes: varios ejemplos por artista, con
+  //     textos y notas variados. Cada reseña necesita su reserva finalizada.
+  //     - A los VERIFICADOS solo se les añaden notas 4–5 para no bajar su
+  //       reputación por debajo de 4.0 (requisito para poder votar la verificación).
+  //     - A los NO verificados se les permite alguna nota media (más realista).
+  const REVIEWS_HI = [
+    { score: 5, comment: 'Excelente, superó nuestras expectativas. Muy recomendado.' },
+    { score: 5, comment: 'Puntual, profesional y con un sonido increíble.' },
+    { score: 4, comment: 'Muy buena presentación, el público quedó feliz.' },
+    { score: 5, comment: 'Ambiente espectacular, lo volveríamos a contratar sin dudar.' },
+    { score: 4, comment: 'Gran repertorio y buena energía toda la noche.' },
+    { score: 5, comment: 'Hizo que la fiesta fuera inolvidable. ¡Gracias!' },
+  ];
+  const REVIEWS_MIX = [
+    { score: 4, comment: 'Buen show, cumplió con lo acordado.' },
+    { score: 3, comment: 'Estuvo bien, aunque empezó un poco tarde.' },
+    { score: 5, comment: 'Nos encantó, muy amable y profesional.' },
+    { score: 4, comment: 'Buena música, el equipo de sonido a la altura.' },
+    { score: 3, comment: 'Correcto en general, mejoraría la comunicación previa.' },
+    { score: 4, comment: 'Amenizó muy bien el evento, contentos con el servicio.' },
+  ];
+  const otherClients = clients.slice(1); // 4 clientes adicionales
+  const EXTRA_PER_ARTIST = 3;
+  for (let i = 0; i < profiles.length; i++) {
+    const pr = profiles[i];
+    const pool = pr.verified === true ? REVIEWS_HI : REVIEWS_MIX;
+    for (let k = 0; k < EXTRA_PER_ARTIST; k++) {
+      const reviewer = otherClients[(i + k) % otherClients.length];
+      const sample = pool[(i * EXTRA_PER_ARTIST + k) % pool.length];
+      const fb = await makeBooking(
+        pr, 'Evento privado', -(40 + i * EXTRA_PER_ARTIST + k), 'finalizada', 300, reviewer.id
+      );
+      reviewRows.push({
+        booking_id: fb.id,
+        rater_id: reviewer.id,
+        ratee_id: pr.userId,
+        ratee_role: 'artista',
+        score: sample.score,
+        comment: sample.comment,
+      });
+    }
   }
   {
     const { error } = await supabase.from('reviews').insert(reviewRows);
@@ -404,10 +493,10 @@ async function main() {
   // Resumen
   console.log('\n✓ Datos de prueba creados (todos en Cusco):');
   console.log(`  - ${clients.length} clientes + ${profiles.length} artistas (contraseña: ${PASSWORD})`);
-  console.log('  - reseñas bilaterales sobre reservas finalizadas + portafolio por artista');
+  console.log('  - reseñas bilaterales + varias reseñas por artista (de distintos clientes)');
   console.log(`  - reservas: 3 activas (pendiente/confirmada/pagada) + ${profiles.length} finalizadas + 1 pago`);
   console.log('  - 3 notificaciones, 1 conversación con 2 mensajes');
-  console.log('  - artistas verificados aptos para votar; DJ Beat con 1/2 respaldos (sin verificar)');
+  console.log('  - verificados con ≥3 respaldos visibles; DJ Beat con 2/3 (aún por verificar)');
   console.log('\nCredenciales de acceso (contraseña: ' + PASSWORD + '):');
   console.log('  CLIENTE  ->  cliente@musicya.com');
   console.log('  ARTISTA  ->  artista@musicya.com');

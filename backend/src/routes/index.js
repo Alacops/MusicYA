@@ -8,6 +8,7 @@ const payments = require('./payments.routes');
 const chat = require('./chat.routes');
 const notifications = require('./notifications.routes');
 const recommendations = require('./recommendations.routes');
+const metrics = require('./metrics.routes');
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/payments', payments);               // Pagos con código QR
 router.use('/chat', chat);                        // Mensajería y chatbot
 router.use('/notifications', notifications);     // Notificaciones
 router.use('/recommendations', recommendations); // Recomendaciones e historial
+router.use('/metrics', metrics);                 // Métricas de la hipótesis (Lean Startup)
 
 module.exports = router;

@@ -37,6 +37,8 @@ create table if not exists artist_profiles (
   bio          text,
   hourly_rate  numeric(10,2),
   city         varchar(80) default 'Cusco',
+  district     varchar(80),        -- distrito de Cusco (filtro de búsqueda)
+  event_types  text[],             -- tipos de evento que atiende (filtro de búsqueda)
   lat          double precision,
   lng          double precision,
   rating_avg   numeric(3,2) default 0,
@@ -56,6 +58,8 @@ alter table artist_profiles add column if not exists verified_at timestamptz;
 alter table artist_profiles add column if not exists social_links jsonb;
 alter table artist_profiles add column if not exists verification_doc_url varchar(500);
 alter table artist_profiles add column if not exists avatar_url varchar(500);
+alter table artist_profiles add column if not exists district varchar(80);
+alter table artist_profiles add column if not exists event_types text[];
 
 -- Respaldos comunitarios: un artista verificado avala la autenticidad de otro.
 -- Al reunir suficientes respaldos de artistas verificados, el perfil se verifica.
@@ -138,6 +142,29 @@ create index if not exists idx_reviews_ratee on reviews (ratee_id, ratee_role);
 
 -- Reputación del cliente: promedio de lo que le califican los artistas.
 alter table users add column if not exists reputation_avg numeric(3,2) default 0;
+
+-- Métricas de la hipótesis Lean Startup (eficiencia de búsqueda y contratación).
+-- Cada fila es un evento del embudo de una sesión de búsqueda:
+--   search_started   → el usuario empieza a buscar (t0)
+--   filter_applied   → aplica/cambia un filtro
+--   artist_opened    → abre el perfil de un candidato (elapsed_ms = tiempo hasta encontrar)
+--   request_initiated→ pulsa "Solicitar contratación"
+-- Con estos eventos se calculan: tiempo medio para encontrar un artista, tasa de
+-- éxito (sesiones con resultado) y tasa de solicitud (sesiones que contratan).
+create table if not exists search_events (
+  id         bigint generated always as identity primary key,
+  user_id    bigint references users(id) on delete set null,
+  session_id text not null,
+  event_type text not null,
+  artist_id  bigint references artist_profiles(id) on delete set null,
+  elapsed_ms integer,
+  filters    jsonb,
+  created_at timestamptz default now()
+);
+create index if not exists idx_search_events_session on search_events (session_id);
+create index if not exists idx_search_events_type on search_events (event_type);
+alter table search_events enable row level security;
+-- Sin políticas: solo el backend (service_role) lee/escribe estas métricas.
 
 -- Pagos (QR / comprobante)
 create table if not exists payments (
