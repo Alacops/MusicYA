@@ -18,6 +18,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import MapScreen from './src/screens/MapScreen';
+import MetricsScreen from './src/screens/MetricsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import PortfolioScreen from './src/screens/PortfolioScreen';
@@ -37,7 +38,8 @@ type Route =
   | { name: 'conversations' }
   | { name: 'chat'; conversationId: number; title: string }
   | { name: 'copilot' }
-  | { name: 'portfolio' };
+  | { name: 'portfolio' }
+  | { name: 'metrics' };
 
 // Sirve tanto al usuario autenticado como al invitado (isGuest). En modo invitado
 // las acciones que requieren cuenta (reservar, chat, notificaciones) llaman a
@@ -75,7 +77,7 @@ function AuthedApp({
     return <BookingsScreen onBack={goHome} onPay={(id) => setRoute({ name: 'payment', bookingId: id })} />;
   }
   if (route.name === 'payment') {
-    return <PaymentScreen bookingId={route.bookingId} onBack={goBookings} onPaid={goBookings} />;
+    return <PaymentScreen bookingId={route.bookingId} onBack={goHome} onPaid={goHome} />;
   }
   if (route.name === 'map') {
     return <MapScreen onBack={goHome} onOpenArtist={openArtist} />;
@@ -101,6 +103,9 @@ function AuthedApp({
   if (route.name === 'portfolio') {
     return <PortfolioScreen onBack={goHome} />;
   }
+  if (route.name === 'metrics') {
+    return <MetricsScreen onBack={goHome} />;
+  }
   return (
     <HomeScreen
       isGuest={isGuest}
@@ -112,6 +117,8 @@ function AuthedApp({
       onOpenNotifications={gated(() => setRoute({ name: 'notifications' }))}
       onOpenChat={gated(() => setRoute({ name: 'conversations' }))}
       onOpenCopilot={() => setRoute({ name: 'copilot' })}
+      onOpenMetrics={() => setRoute({ name: 'metrics' })}
+      onPay={(id) => (isGuest ? requireLogin() : setRoute({ name: 'payment', bookingId: id }))}
     />
   );
 }
