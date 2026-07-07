@@ -2,7 +2,7 @@ const { supabase } = require('../config/supabase');
 const { createNotification } = require('./notifications.controller');
 
 // Respaldos de artistas verificados necesarios para verificar a un artista nuevo.
-const REQUIRED_ENDORSEMENTS = 2;
+const REQUIRED_ENDORSEMENTS = 3;
 
 // Elegibilidad para VOTAR (respaldar): el votante, además de estar verificado,
 // debe ser un artista consolidado: cuenta antigua, con contrataciones reales y

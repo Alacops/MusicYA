@@ -222,7 +222,7 @@ async function create(req, res, next) {
     // El artista debe existir
     const { data: artist, error: artistError } = await supabase
       .from('artist_profiles')
-      .select('id, user_id, is_available')
+      .select('id, user_id, is_available, hourly_rate')
       .eq('id', artistId)
       .maybeSingle();
     if (artistError) return next(artistError);
@@ -241,6 +241,15 @@ async function create(req, res, next) {
       });
     }
 
+    // Total a pagar: si el cliente no lo envía, se calcula con la tarifa del
+    // artista × la duración (en horas). Así la reserva siempre lleva un monto
+    // para el pago por QR.
+    let effectiveTotal = total ?? null;
+    if (effectiveTotal == null && artist.hourly_rate != null) {
+      const hours = (end.getTime() - start.getTime()) / 3600000;
+      effectiveTotal = Math.round(Number(artist.hourly_rate) * hours);
+    }
+
     const { data: booking, error } = await supabase
       .from('bookings')
       .insert({
@@ -250,7 +259,7 @@ async function create(req, res, next) {
         event_date: start.toISOString(),
         event_end: end.toISOString(),
         location: location || null,
-        total: total ?? null,
+        total: effectiveTotal,
         status: 'pendiente',
       })
       .select('*')
