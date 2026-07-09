@@ -89,7 +89,7 @@ export default function RegisterScreen({
             <Text style={styles.backLink}>← Volver</Text>
           </TouchableOpacity>
         )}
-        <Logo size={130} style={styles.logo} />
+        <Logo size={180} style={styles.logo} />
         <Text style={styles.title}>Crea tu cuenta</Text>
 
         {/* Selector de rol */}

@@ -53,7 +53,7 @@ export default function LoginScreen({
             <Text style={styles.backLink}>← Volver</Text>
           </TouchableOpacity>
         )}
-        <Logo size={200} style={styles.logo} />
+        <Logo size={240} style={styles.logo} />
         <Text style={styles.title}>Inicia sesión</Text>
         <Text style={styles.subtitle}>Contrata y promociona artistas en tiempo real</Text>
 

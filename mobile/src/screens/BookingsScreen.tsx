@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import GlassButton from '../components/GlassButton';
 import { colors, fonts, radius, spacing } from '../theme';
 
 type Booking = {
@@ -158,9 +159,7 @@ export default function BookingsScreen({
 
       <View style={styles.headerRow}>
         <Text style={styles.title}>Mis reservas</Text>
-        <TouchableOpacity onPress={load} style={styles.refresh}>
-          <Text style={styles.refreshText}>Actualizar</Text>
-        </TouchableOpacity>
+        <GlassButton title="Actualizar" size="sm" onPress={load} />
       </View>
 
       {error && (
@@ -211,26 +210,27 @@ export default function BookingsScreen({
                   ) : (
                     <>
                     {canPay && (
-                      <TouchableOpacity
-                        style={[styles.actionBtn, styles.payBtn]}
-                        onPress={() => onPay(b.id)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.actionText}>💳 Pagar</Text>
-                      </TouchableOpacity>
+                      <GlassButton title="💳 Pagar" size="sm" onPress={() => onPay(b.id)} />
                     )}
-                    {actions.map((a) => (
-                      <TouchableOpacity
-                        key={a.to}
-                        style={[styles.actionBtn, a.danger && styles.actionDanger]}
-                        onPress={() => changeStatus(b.id, a.to)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[styles.actionText, a.danger && styles.actionTextDanger]}>
-                          {a.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {actions.map((a) =>
+                      a.danger ? (
+                        <TouchableOpacity
+                          key={a.to}
+                          style={[styles.actionBtn, styles.actionDanger]}
+                          onPress={() => changeStatus(b.id, a.to)}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={[styles.actionText, styles.actionTextDanger]}>{a.label}</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <GlassButton
+                          key={a.to}
+                          title={a.label}
+                          size="sm"
+                          onPress={() => changeStatus(b.id, a.to)}
+                        />
+                      )
+                    )}
                     </>
                   )}
                 </View>
@@ -261,14 +261,12 @@ export default function BookingsScreen({
                       />
                       {rErr && <Text style={styles.reviewErr}>{rErr}</Text>}
                       <View style={styles.actions}>
-                        <TouchableOpacity
-                          style={styles.actionBtn}
+                        <GlassButton
+                          title={rBusy ? 'Enviando…' : 'Enviar'}
+                          size="sm"
                           onPress={() => submitReview(b.id)}
                           disabled={rBusy}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={styles.actionText}>{rBusy ? 'Enviando…' : 'Enviar'}</Text>
-                        </TouchableOpacity>
+                        />
                         <TouchableOpacity
                           style={[styles.actionBtn, styles.actionDanger]}
                           onPress={() => setReviewingId(null)}
@@ -279,15 +277,12 @@ export default function BookingsScreen({
                       </View>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={[styles.actionBtn, styles.rateBtn]}
+                    <GlassButton
+                      title={`⭐ Calificar a ${isArtist ? 'cliente' : 'artista'}`}
+                      size="sm"
                       onPress={() => openReview(b.id)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.actionText}>
-                        ⭐ Calificar a {isArtist ? 'cliente' : 'artista'}
-                      </Text>
-                    </TouchableOpacity>
+                      style={styles.rateBtn}
+                    />
                   )}
                 </View>
               )}
@@ -305,8 +300,6 @@ const styles = StyleSheet.create({
   backLink: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   title: { color: colors.text, fontSize: 26, fontWeight: '800', flex: 1 },
-  refresh: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
-  refreshText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   placeholder: { color: colors.muted, fontSize: 14, marginTop: spacing.lg },
   errorBox: { backgroundColor: '#3B1219', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },
   errorText: { color: '#FCA5A5', fontSize: 13 },
@@ -319,13 +312,12 @@ const styles = StyleSheet.create({
   detail: { color: colors.muted, fontSize: 13, marginTop: 2 },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   actionBtn: { backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: 8 },
-  payBtn: { backgroundColor: '#15803D' },
   actionText: { color: colors.text, fontSize: 13, fontWeight: '700' },
   actionDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#FCA5A5' },
   actionTextDanger: { color: '#FCA5A5' },
   reviewWrap: { marginTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md },
   reviewedNote: { color: colors.cyan, fontSize: 13, fontFamily: fonts.medium },
-  rateBtn: { alignSelf: 'flex-start', backgroundColor: colors.magenta },
+  rateBtn: { alignSelf: 'flex-start' },
   starRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.sm },
   star: { fontSize: 30 },
   commentInput: {

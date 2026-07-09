@@ -11,6 +11,7 @@ import {
 } from '../metrics';
 import { useAuth } from '../auth/AuthContext';
 import BookingTracker from '../components/BookingTracker';
+import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -188,7 +189,7 @@ export default function HomeScreen({
       <LinearGradient colors={['#27E1FF', 'transparent']} style={styles.orbB} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Logo size={64} style={styles.headerLogo} />
+        <Logo size={88} style={styles.headerLogo} />
         <View style={{ flex: 1 }}>
           <Text style={styles.brand}>MusicYA</Text>
           <Text style={styles.welcome}>
@@ -210,13 +211,9 @@ export default function HomeScreen({
           )}
         </TouchableOpacity>
         {isGuest ? (
-          <TouchableOpacity style={styles.logout} onPress={requireLogin} activeOpacity={0.85}>
-            <Text style={styles.logoutText}>Ingresar</Text>
-          </TouchableOpacity>
+          <GlassButton title="Ingresar" onPress={requireLogin} size="sm" style={styles.logout} />
         ) : (
-          <TouchableOpacity style={styles.logout} onPress={logout} activeOpacity={0.85}>
-            <Text style={styles.logoutText}>Salir</Text>
-          </TouchableOpacity>
+          <GlassButton title="Salir" onPress={logout} size="sm" style={styles.logout} />
         )}
       </View>
 
@@ -229,36 +226,26 @@ export default function HomeScreen({
       />
 
       <View style={styles.navRow}>
-        <TouchableOpacity style={styles.navBtn} onPress={onOpenMap} activeOpacity={0.85}>
-          <Text style={styles.navText}>🗺️ Mapa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={onOpenBookings} activeOpacity={0.85}>
-          <Text style={styles.navText}>📅 Reservas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={onOpenChat} activeOpacity={0.85}>
-          <Text style={styles.navText}>💬 Chat</Text>
-        </TouchableOpacity>
+        <GlassButton title="🗺️ Mapa" onPress={onOpenMap} size="sm" style={styles.navBtn} />
+        <GlassButton title="📅 Reservas" onPress={onOpenBookings} size="sm" style={styles.navBtn} />
+        <GlassButton title="💬 Chat" onPress={onOpenChat} size="sm" style={styles.navBtn} />
       </View>
 
-      <TouchableOpacity style={styles.aiTouch} onPress={onOpenCopilot} activeOpacity={0.9}>
-        <GlassCard intensity={55} style={styles.aiBtn}>
-          <Text style={styles.aiText}>🤖 Pregúntale al asistente IA</Text>
-        </GlassCard>
-      </TouchableOpacity>
+      <GlassButton
+        title="🤖 Pregúntale al asistente IA"
+        onPress={onOpenCopilot}
+        style={styles.featureBtn}
+      />
 
       {!isGuest && user?.role === 'artista' && (
-        <TouchableOpacity style={styles.portfolioTouch} onPress={onOpenPortfolio} activeOpacity={0.9}>
-          <GlassCard intensity={45} style={styles.portfolioBtn}>
-            <Text style={styles.aiText}>🎨 Mi portafolio</Text>
-          </GlassCard>
-        </TouchableOpacity>
+        <GlassButton title="🎨 Mi portafolio" onPress={onOpenPortfolio} style={styles.featureBtn} />
       )}
 
-      <TouchableOpacity style={styles.metricsTouch} onPress={onOpenMetrics} activeOpacity={0.9}>
-        <GlassCard intensity={40} style={styles.metricsBtn}>
-          <Text style={styles.aiText}>📊 Indicadores de la plataforma</Text>
-        </GlassCard>
-      </TouchableOpacity>
+      <GlassButton
+        title="📊 Indicadores de la plataforma"
+        onPress={onOpenMetrics}
+        style={styles.featureBtn}
+      />
 
       {viewed.length > 0 && (
         <>
@@ -496,15 +483,7 @@ const styles = StyleSheet.create({
   headerLogo: { marginRight: spacing.sm },
   brand: { color: colors.accent, fontSize: type.title, fontFamily: fonts.display, letterSpacing: -0.5 },
   welcome: { color: colors.muted, fontSize: 14, marginTop: 4, fontFamily: fonts.medium },
-  logout: {
-    backgroundColor: colors.pink,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.ink,
-  },
-  logoutText: { color: colors.ink, fontSize: 13, fontFamily: fonts.bold, textTransform: 'uppercase' },
+  logout: {},
   bell: {
     backgroundColor: colors.surfaceAlt,
     width: 42,
@@ -533,23 +512,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.ink, fontSize: 11, fontFamily: fonts.display },
   navRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
-  navBtn: {
-    flex: 1,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  navText: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
-  aiTouch: { borderRadius: radius.lg, marginBottom: spacing.md, ...glow(colors.magenta) },
-  aiBtn: { paddingVertical: 16, alignItems: 'center', borderColor: 'rgba(214,51,255,0.5)' },
-  aiText: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
-  portfolioTouch: { borderRadius: radius.lg, marginBottom: spacing.lg, ...glow(colors.cyan) },
-  portfolioBtn: { paddingVertical: 16, alignItems: 'center', borderColor: 'rgba(39,225,255,0.5)' },
-  metricsTouch: { borderRadius: radius.lg, marginBottom: spacing.lg },
-  metricsBtn: { paddingVertical: 16, alignItems: 'center', borderColor: colors.border },
+  navBtn: { flex: 1 },
+  featureBtn: { marginBottom: spacing.md },
   sectionTitle: {
     color: colors.text,
     fontSize: type.h2,

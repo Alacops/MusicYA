@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import GlassButton from '../components/GlassButton';
 import { colors, spacing } from '../theme';
 import MapView from './map/MapView';
 import { MapMarker } from './map/mapHtml';
@@ -78,9 +79,7 @@ export default function MapScreen({
 
       <View style={styles.headerRow}>
         <Text style={styles.title}>Artistas en Cusco</Text>
-        <TouchableOpacity onPress={load} style={styles.refresh}>
-          <Text style={styles.refreshText}>Actualizar</Text>
-        </TouchableOpacity>
+        <GlassButton title="Actualizar" size="sm" onPress={load} />
       </View>
 
       {updatedAt && (
@@ -132,8 +131,6 @@ const styles = StyleSheet.create({
   backLink: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   title: { color: colors.text, fontSize: 24, fontWeight: '800', flex: 1 },
-  refresh: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
-  refreshText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   updated: { color: colors.muted, fontSize: 12, marginTop: 4, marginBottom: spacing.md },
   errorBox: { backgroundColor: '#3B1219', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },
   errorText: { color: '#FCA5A5', fontSize: 13 },

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import GlassButton from '../components/GlassButton';
 import { useSocket } from '../socket/SocketContext';
 import { colors, spacing } from '../theme';
 
@@ -129,9 +130,7 @@ export default function ChatScreen({
           onSubmitEditing={send}
           returnKeyType="send"
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={send} activeOpacity={0.85}>
-          <Text style={styles.sendText}>Enviar</Text>
-        </TouchableOpacity>
+        <GlassButton title="Enviar" size="sm" onPress={send} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -175,6 +174,4 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
-  sendBtn: { backgroundColor: colors.primary, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: 10 },
-  sendText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

@@ -17,6 +17,7 @@ import { recordView } from '../behavior';
 import { recordRequestInitiated } from '../metrics';
 import { useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
+import GlassButton from '../components/GlassButton';
 import PortfolioVideo from '../components/PortfolioVideo';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { colors, fonts, radius, spacing } from '../theme';
@@ -82,7 +83,6 @@ export default function ArtistDetailScreen({
   const [showBooking, setShowBooking] = useState(false);
   const [hoverRating, setHoverRating] = useState(false);
   const [hoverVerif, setHoverVerif] = useState(false);
-  const [hoverContratar, setHoverContratar] = useState(false);
 
   // Formulario de reserva
   const [eventType, setEventType] = useState('');
@@ -345,22 +345,12 @@ export default function ArtistDetailScreen({
                   loading={startingChat}
                 />
               </View>
-              <Pressable
+              <GlassButton
+                title={isGuest ? '🔒 Contratar' : showBooking ? 'Ocultar' : '🎫 Contratar'}
                 onPress={() => (isGuest ? requireLogin() : setShowBooking((v) => !v))}
-                onHoverIn={() => setHoverContratar(true)}
-                onHoverOut={() => setHoverContratar(false)}
                 disabled={!artist.is_available}
-                style={[
-                  styles.contratarBtn,
-                  hoverContratar && styles.contratarBtnHover,
-                  !artist.is_available && styles.contratarBtnDisabled,
-                ]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.contratarText}>
-                  {isGuest ? '🔒 Contratar' : showBooking ? 'Ocultar' : '🎫 Contratar'}
-                </Text>
-              </Pressable>
+                style={styles.contratarBtn}
+              />
             </View>
 
             {/* Formulario de reserva: aparece solo al pulsar "Contratar" */}
@@ -448,16 +438,13 @@ export default function ArtistDetailScreen({
             )}
 
             {user?.role === 'artista' && !isOwnProfile && !verif.is_verified && (
-              <TouchableOpacity
-                style={styles.endorseBtn}
+              <GlassButton
+                title={endorsing ? 'Respaldando…' : '✓ Respaldar a este artista'}
                 onPress={respaldar}
                 disabled={endorsing}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.endorseBtnText}>
-                  {endorsing ? 'Respaldando…' : '✓ Respaldar a este artista'}
-                </Text>
-              </TouchableOpacity>
+                size="sm"
+                style={styles.endorseBtn}
+              />
             )}
 
             {verifMsg && <Text style={styles.verifMsg}>{verifMsg}</Text>}
@@ -564,24 +551,7 @@ const styles = StyleSheet.create({
   statValue: { color: colors.text, fontSize: 18, fontWeight: '800' },
   statLabel: { color: colors.muted, fontSize: 11, fontFamily: fonts.bold, letterSpacing: 0.5, marginTop: 3 },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, alignItems: 'stretch' },
-  contratarBtn: {
-    flex: 1,
-    borderRadius: radius.md,
-    paddingVertical: 15,
-    marginTop: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  contratarBtnHover: { backgroundColor: colors.pink },
-  contratarBtnDisabled: { opacity: 0.55 },
-  contratarText: {
-    color: '#fff',
-    fontSize: 17,
-    fontFamily: fonts.display,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  contratarBtn: { flex: 1, marginTop: spacing.sm },
   bookingForm: { marginTop: spacing.md },
   priceBanner: {
     flexDirection: 'row',
@@ -628,15 +598,7 @@ const styles = StyleSheet.create({
   verifHint: { color: colors.muted, fontSize: 12, marginTop: spacing.sm },
   endorseItem: { color: colors.text, fontSize: 13, marginTop: spacing.sm },
   endorseName: { fontFamily: fonts.bold },
-  endorseBtn: {
-    marginTop: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.cyan,
-    borderRadius: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  endorseBtnText: { color: colors.cyan, fontSize: 14, fontFamily: fonts.bold },
+  endorseBtn: { marginTop: spacing.md },
   verifMsg: { color: colors.cyan, fontSize: 13, marginTop: spacing.sm },
   unavailable: { backgroundColor: '#3B2A12', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },
   unavailableText: { color: colors.accent, fontSize: 13 },

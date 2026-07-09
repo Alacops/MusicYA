@@ -13,6 +13,7 @@ import {
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Field, PrimaryButton } from '../components/form';
+import GlassButton from '../components/GlassButton';
 import { colors, fonts, radius, spacing, type } from '../theme';
 
 // Tipos de material multimedia aceptados por el backend (artists.controller.js)
@@ -255,9 +256,7 @@ export default function PortfolioScreen({ onBack }: { onBack: () => void }) {
             <Field label="Título" value={it.title} onChangeText={(v) => setItemField(idx, 'title', v)} placeholder="Nombre del tema o pieza" />
           </View>
         ))}
-        <TouchableOpacity style={styles.addBtn} onPress={addItem} activeOpacity={0.85}>
-          <Text style={styles.addBtnText}>+ Añadir material</Text>
-        </TouchableOpacity>
+        <GlassButton title="+ Añadir material" size="sm" onPress={addItem} style={styles.addBtn} />
 
         <View style={{ marginTop: spacing.lg }}>
           <PrimaryButton title="Guardar portafolio" onPress={save} loading={saving} />
@@ -315,15 +314,7 @@ const styles = StyleSheet.create({
   },
   typeChipText: { color: colors.text, fontSize: 12, fontFamily: fonts.bold },
   removeText: { color: colors.pink, fontSize: 13, fontFamily: fonts.medium },
-  addBtn: {
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  addBtnText: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
+  addBtn: { alignSelf: 'flex-start' },
   okBox: { backgroundColor: '#12331E', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },
   okText: { color: '#86EFAC', fontSize: 13 },
   errorBox: { backgroundColor: '#3B1219', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },

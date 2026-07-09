@@ -3,10 +3,11 @@ import { MotiView } from 'moti';
 import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
 import VerifiedBadge from '../components/VerifiedBadge';
-import { colors, fonts, gradients, radius, spacing, type, glow } from '../theme';
+import { colors, fonts, radius, spacing, type, glow } from '../theme';
 
 // Página de inicio pública (estilo agencia de booking, inspirada en AAE Music /
 // Espectalium): presenta el negocio y deja explorar sin cuenta o iniciar sesión.
@@ -77,45 +78,14 @@ export default function LandingScreen({
           transition={{ type: 'timing', duration: 500 }}
           style={styles.hero}
         >
-          <Logo size={150} style={styles.logo} />
+          <Logo size={210} style={styles.logo} />
           <Text style={styles.brand}>MusicYA</Text>
           <Text style={styles.tagline}>
             Contrata músicos y artistas de Cusco en tiempo real, fácil y sin intermediarios.
           </Text>
         </MotiView>
 
-        {/* Stats (datos reales del catálogo) */}
-        <View style={styles.statsRow}>
-          {stats.map((s) => (
-            <GlassCard key={s.label} style={styles.statCard}>
-              <Text style={styles.statValue}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </GlassCard>
-          ))}
-        </View>
-
-        {/* CTAs */}
-        <TouchableOpacity style={styles.ctaPrimary} onPress={onExplore} activeOpacity={0.9}>
-          <LinearGradient
-            colors={gradients.brand}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaPrimaryInner}
-          >
-            <Text style={styles.ctaPrimaryText}>Explorar artistas</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={styles.ctaSecondaryRow}>
-          <TouchableOpacity style={styles.ctaGhost} onPress={onLogin} activeOpacity={0.85}>
-            <Text style={styles.ctaGhostText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.ctaGhost} onPress={onRegister} activeOpacity={0.85}>
-            <Text style={styles.ctaGhostText}>Crear cuenta</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Artistas destacados (reales, mejor valorados) */}
+        {/* Artistas destacados (reales, mejor valorados) — justo bajo la frase */}
         {featured.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Artistas destacados</Text>
@@ -162,6 +132,24 @@ export default function LandingScreen({
             </ScrollView>
           </>
         )}
+
+        {/* Stats (datos reales del catálogo) */}
+        <View style={styles.statsRow}>
+          {stats.map((s) => (
+            <GlassCard key={s.label} style={styles.statCard}>
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+            </GlassCard>
+          ))}
+        </View>
+
+        {/* CTAs */}
+        <GlassButton title="Explorar artistas" onPress={onExplore} size="lg" style={styles.ctaPrimary} />
+
+        <View style={styles.ctaSecondaryRow}>
+          <GlassButton title="Iniciar sesión" onPress={onLogin} style={styles.ctaSecondary} />
+          <GlassButton title="Crear cuenta" onPress={onRegister} style={styles.ctaSecondary} />
+        </View>
 
         {/* Categorías / servicios */}
         <Text style={styles.sectionTitle}>Qué puedes contratar</Text>
@@ -261,26 +249,9 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
   statValue: { color: colors.accent, fontSize: 22, fontFamily: fonts.display },
   statLabel: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: fonts.medium },
-  ctaPrimary: { borderRadius: radius.md, ...glow() },
-  ctaPrimaryInner: { borderRadius: radius.md, paddingVertical: 16, alignItems: 'center' },
-  ctaPrimaryText: {
-    color: '#fff',
-    fontSize: 17,
-    fontFamily: fonts.display,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  ctaPrimary: {},
   ctaSecondaryRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
-  ctaGhost: {
-    flex: 1,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  ctaGhostText: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
+  ctaSecondary: { flex: 1 },
   sectionTitle: {
     color: colors.text,
     fontSize: type.h2,

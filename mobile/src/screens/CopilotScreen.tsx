@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { api } from '../api/client';
+import GlassButton from '../components/GlassButton';
 import { colors, fonts, radius, spacing } from '../theme';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
@@ -105,9 +106,7 @@ export default function CopilotScreen({ onBack }: { onBack: () => void }) {
           onSubmitEditing={() => send()}
           returnKeyType="send"
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={() => send()} activeOpacity={0.85}>
-          <Text style={styles.sendText}>Enviar</Text>
-        </TouchableOpacity>
+        <GlassButton title="Enviar" size="sm" onPress={() => send()} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -161,6 +160,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: fonts.regular,
   },
-  sendBtn: { backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: 10 },
-  sendText: { color: '#fff', fontSize: 14, fontFamily: fonts.bold },
 });

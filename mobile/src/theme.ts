@@ -9,6 +9,8 @@ export const colors = {
   accent: '#D633FF', // acento principal = magenta
   pink: '#FF3DBE', // rosa
   cyan: '#27E1FF', // cian del waveform
+  electric: '#12B8FF', // azul eléctrico (botones de vidrio 3D)
+  electricDark: '#0A5BE0',
 
   // Superficies (base oscura con tinte púrpura, como el fondo del logo)
   background: '#0D0A18',
@@ -26,6 +28,7 @@ export const gradients = {
   brand: ['#FF3DD4', '#8B2FE0'] as const, // magenta → violeta
   brandSoft: ['#D633FF', '#7C3AED'] as const,
   wave: ['#FF3DD4', '#8B2FE0', '#27E1FF'] as const, // como el waveform del logo
+  electric: ['#5FE9FF', '#12B8FF', '#0A5BE0'] as const, // vidrio azul eléctrico
 };
 
 export const spacing = {

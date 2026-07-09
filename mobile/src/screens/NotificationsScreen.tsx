@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import GlassButton from '../components/GlassButton';
 import { useNotifications } from '../notifications/NotificationsContext';
 import { colors, spacing } from '../theme';
 
@@ -24,9 +25,7 @@ export default function NotificationsScreen({ onBack }: { onBack: () => void }) 
       <View style={styles.headerRow}>
         <Text style={styles.title}>Notificaciones</Text>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={markAllRead} style={styles.allBtn}>
-            <Text style={styles.allText}>Marcar todas</Text>
-          </TouchableOpacity>
+          <GlassButton title="Marcar todas" size="sm" onPress={markAllRead} />
         )}
       </View>
 
@@ -59,8 +58,6 @@ const styles = StyleSheet.create({
   backLink: { color: colors.accent, fontSize: 14, fontWeight: '700' },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   title: { color: colors.text, fontSize: 26, fontWeight: '800', flex: 1 },
-  allBtn: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20 },
-  allText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   placeholder: { color: colors.muted, fontSize: 14, marginTop: spacing.lg },
   card: { backgroundColor: colors.surface, borderRadius: 14, padding: spacing.md, marginBottom: spacing.sm },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: colors.primary },

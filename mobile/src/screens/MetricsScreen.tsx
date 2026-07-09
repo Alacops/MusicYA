@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import GlassButton from '../components/GlassButton';
 import { colors, fonts, radius, spacing, glow } from '../theme';
 
 // Indicadores de la hipótesis Lean Startup (los calcula el backend a partir de
@@ -75,9 +76,7 @@ export default function MetricsScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.title}>Indicadores</Text>
           <Text style={styles.subtitle}>Eficiencia de búsqueda y contratación</Text>
         </View>
-        <TouchableOpacity onPress={load} style={styles.refresh} activeOpacity={0.85}>
-          <Text style={styles.refreshText}>Actualizar</Text>
-        </TouchableOpacity>
+        <GlassButton title="Actualizar" size="sm" onPress={load} />
       </View>
 
       {loading && !data ? (
@@ -269,15 +268,6 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   title: { color: colors.text, fontSize: 26, fontFamily: fonts.display, letterSpacing: -0.5 },
   subtitle: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },
-  refresh: {
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 2,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-  },
-  refreshText: { color: colors.accent, fontSize: 13, fontFamily: fonts.bold },
   errorBox: { backgroundColor: '#3B1219', borderRadius: radius.md, padding: spacing.md },
   errorText: { color: '#FCA5A5', fontSize: 13 },
   card: {
