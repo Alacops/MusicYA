@@ -1,14 +1,18 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
-import { useEffect, useRef, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { api } from '../api/client';
 import { getViewed, type ViewedArtist } from '../behavior';
-import {
-  recordArtistOpened,
-  recordFilterApplied,
-  startSearchSession,
-} from '../metrics';
+import { recordArtistOpened, startSearchSession } from '../metrics';
 import { useAuth } from '../auth/AuthContext';
 import BookingTracker from '../components/BookingTracker';
 import GlassButton from '../components/GlassButton';
@@ -16,9 +20,32 @@ import GlassCard from '../components/GlassCard';
 import Logo from '../components/Logo';
 import VerifiedBadge from '../components/VerifiedBadge';
 import { useNotifications } from '../notifications/NotificationsContext';
-import { colors, fonts, radius, spacing, type, glow } from '../theme';
+import { colors, fonts, gradients, radius, spacing, type, glow } from '../theme';
+import MapView from './map/MapView';
+import type { MapMarker } from './map/mapHtml';
 
 type FeatureAction = 'map' | 'chat' | 'bookings' | 'notifications' | 'copilot';
+
+// Centro de Cusco: encuadre inicial del mapa de artistas
+const CUSCO = { lat: -13.5319, lng: -71.9675 };
+
+// Alto común de los tres paneles (mismo tamaño) y del mapa que va dentro
+const PANEL_H = 452;
+const MAP_H = 320;
+
+// Confeti del fondo de fiesta (posiciones fijas para un banner festivo estable)
+const CONFETTI: { top: number; left: string; color: string; size: number }[] = [
+  { top: 16, left: '8%', color: colors.pink, size: 10 },
+  { top: 44, left: '20%', color: colors.cyan, size: 7 },
+  { top: 20, left: '38%', color: colors.magenta, size: 8 },
+  { top: 56, left: '55%', color: colors.electric, size: 9 },
+  { top: 24, left: '72%', color: colors.pink, size: 7 },
+  { top: 48, left: '88%', color: colors.cyan, size: 10 },
+  { top: 78, left: '14%', color: colors.magenta, size: 6 },
+  { top: 84, left: '66%', color: colors.pink, size: 8 },
+  { top: 96, left: '44%', color: colors.electric, size: 7 },
+  { top: 104, left: '80%', color: colors.magenta, size: 6 },
+];
 
 const FEATURES: { icon: string; title: string; desc: string; action: FeatureAction }[] = [
   { icon: '📍', title: 'Búsqueda geolocalizada', desc: 'Filtros y disponibilidad en tiempo real', action: 'map' },
@@ -33,43 +60,26 @@ type Artist = {
   genre: string | null;
   city: string | null;
   district?: string | null;
-  event_types?: string[] | null;
   hourly_rate: number | null;
   rating_avg: number | string | null;
   is_available: boolean;
   is_verified?: boolean;
   avatar_url?: string | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
   users: { name: string } | null;
 };
-
-// Rangos de precio para los filtros (S/ por hora); null = sin tope.
-const PRICE_OPTIONS: { label: string; value: number | null }[] = [
-  { label: 'Todos', value: null },
-  { label: '≤ S/100', value: 100 },
-  { label: '≤ S/200', value: 200 },
-  { label: '≤ S/300', value: 300 },
-];
-
-// Píldora de filtro reutilizable (género, precio, disponibilidad)
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.85}
-      style={[styles.chip, active && styles.chipActive]}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
 
 export default function HomeScreen({
   isGuest = false,
   onRequireLogin,
+  onOpenRegister,
   onOpenArtist,
   onOpenPortfolio,
   onOpenBookings,
   onOpenMap,
+  onOpenSearch,
+  onOpenFeatured,
   onOpenNotifications,
   onOpenChat,
   onOpenCopilot,
@@ -78,10 +88,13 @@ export default function HomeScreen({
 }: {
   isGuest?: boolean;
   onRequireLogin?: () => void;
+  onOpenRegister?: () => void;
   onOpenArtist: (id: number) => void;
   onOpenPortfolio: () => void;
   onOpenBookings: () => void;
   onOpenMap: () => void;
+  onOpenSearch: () => void;
+  onOpenFeatured: () => void;
   onOpenNotifications: () => void;
   onOpenChat: () => void;
   onOpenCopilot: () => void;
@@ -90,20 +103,14 @@ export default function HomeScreen({
 }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const { width } = useWindowDimensions();
+  // A partir de ~900px caben los tres paneles lado a lado; por debajo se apilan.
+  const wide = width >= 900;
   const [artists, setArtists] = useState<Artist[] | null>(null);
   const [allGenres, setAllGenres] = useState<string[]>([]);
-  const [allDistricts, setAllDistricts] = useState<string[]>([]);
-  const [allEventTypes, setAllEventTypes] = useState<string[]>([]);
   const [viewed, setViewed] = useState<ViewedArtist[]>([]);
   const requireLogin = onRequireLogin ?? (() => {});
-
-  // Estado del buscador (eje de la hipótesis: reducir el tiempo de búsqueda)
-  const [query, setQuery] = useState('');
-  const [fGenre, setFGenre] = useState<string | null>(null);
-  const [fDistrict, setFDistrict] = useState<string | null>(null);
-  const [fEventType, setFEventType] = useState<string | null>(null);
-  const [fMaxPrice, setFMaxPrice] = useState<number | null>(null);
-  const [fAvailable, setFAvailable] = useState(false);
+  const requireRegister = onOpenRegister ?? (() => {});
 
   // Cada módulo abre la pantalla correspondiente ya existente
   const featureActions: Record<FeatureAction, () => void> = {
@@ -114,73 +121,156 @@ export default function HomeScreen({
     copilot: onOpenCopilot,
   };
 
-  // Al montar: inicia la sesión de búsqueda (t0 de la medición), carga el catálogo
-  // completo para derivar los géneros disponibles y recupera los vistos recientemente.
+  // Al montar: inicia la sesión de búsqueda (t0) y carga el catálogo para los
+  // paneles de adelanto (destacados, mapa) y los géneros de la vista previa.
   useEffect(() => {
     startSearchSession();
     api
       .get<Artist[]>('/artists')
       .then((list) => {
         const arr = Array.isArray(list) ? list : [];
-        const uniq = (xs: (string | null | undefined)[]) =>
-          Array.from(new Set(xs.filter((x): x is string => !!x))).sort();
-        setAllGenres(uniq(arr.map((a) => a.genre)));
-        setAllDistricts(uniq(arr.map((a) => a.district)));
-        setAllEventTypes(uniq(arr.flatMap((a) => a.event_types ?? [])));
+        setArtists(arr);
+        setAllGenres(
+          Array.from(new Set(arr.map((a) => a.genre).filter((x): x is string => !!x))).sort()
+        );
       })
-      .catch(() => {});
+      .catch(() => setArtists([]));
     getViewed().then(setViewed);
   }, []);
 
-  // Refetch del catálogo cada vez que cambian los filtros estructurales (género,
-  // precio, disponibilidad). El texto libre se filtra localmente sobre el resultado.
-  const firstFilterRun = useRef(true);
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (fGenre) params.set('genre', fGenre);
-    if (fDistrict) params.set('district', fDistrict);
-    if (fEventType) params.set('eventType', fEventType);
-    if (fMaxPrice != null) params.set('maxPrice', String(fMaxPrice));
-    if (fAvailable) params.set('available', 'true');
-    const qs = params.toString();
-
-    setArtists(null);
-    api
-      .get<Artist[]>(qs ? `/artists?${qs}` : '/artists')
-      .then((list) => setArtists(Array.isArray(list) ? list : []))
-      .catch(() => setArtists([]));
-
-    // No cuenta como "filtro aplicado" la carga inicial
-    if (firstFilterRun.current) {
-      firstFilterRun.current = false;
-    } else {
-      recordFilterApplied({
-        genre: fGenre,
-        district: fDistrict,
-        eventType: fEventType,
-        maxPrice: fMaxPrice,
-        available: fAvailable,
-      });
-    }
-  }, [fGenre, fDistrict, fEventType, fMaxPrice, fAvailable]);
-
-  // Abre el perfil registrando el evento "artista encontrado" (tiempo hasta encontrar)
+  // Abre el perfil registrando el evento "artista abierto" (tiempo hasta encontrar)
   const openArtist = (id: number) => {
     recordArtistOpened(id);
     onOpenArtist(id);
   };
 
-  // Filtro local por texto (nombre o género) sobre el resultado ya filtrado
-  const q = query.trim().toLowerCase();
-  const visible = (artists ?? []).filter((a) => {
-    if (!q) return true;
-    return (
-      (a.users?.name || '').toLowerCase().includes(q) ||
-      (a.genre || '').toLowerCase().includes(q)
-    );
-  });
-  const hasFilters =
-    !!fGenre || !!fDistrict || !!fEventType || fMaxPrice != null || fAvailable || !!q;
+  // Adelanto: mejor valorados (el backend ya ordena por rating desc) y marcadores
+  const featured = (artists ?? []).slice(0, 8);
+  const mapMarkers: MapMarker[] = (artists ?? [])
+    .filter((a) => a.lat != null && a.lng != null)
+    .map((a) => ({
+      id: a.id,
+      lat: Number(a.lat),
+      lng: Number(a.lng),
+      name: a.users?.name || 'Artista',
+      genre: a.genre,
+      available: a.is_available,
+      avatarUrl: a.avatar_url ?? null,
+      hourlyRate: a.hourly_rate != null ? Number(a.hourly_rate) : null,
+    }));
+
+  // ── Contenido de cada panel ───────────────────────────────────────────────────
+
+  const panelDestacados = (
+    <GlassCard style={styles.panel}>
+      <Text style={styles.panelTitle}>⭐ Artistas destacados</Text>
+      <Text style={styles.panelHint}>Los mejor valorados · toca para ver todos</Text>
+      <ScrollView
+        style={styles.panelScroll}
+        contentContainerStyle={styles.panelBody}
+        showsVerticalScrollIndicator={false}
+      >
+        {artists === null ? (
+          <Text style={styles.panelEmpty}>Cargando…</Text>
+        ) : featured.length === 0 ? (
+          <Text style={styles.panelEmpty}>Aún no hay artistas.</Text>
+        ) : (
+          featured.map((a) => {
+            const rating = Number(a.rating_avg) || 0;
+            const rate = a.hourly_rate != null ? Number(a.hourly_rate) : null;
+            return (
+              <View key={a.id} style={styles.featRow}>
+                {a.avatar_url ? (
+                  <Image source={{ uri: a.avatar_url }} style={styles.featAvatar} />
+                ) : (
+                  <View style={styles.featAvatar}>
+                    <Text style={styles.featAvatarText}>
+                      {(a.users?.name || '?').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <View style={styles.featNameRow}>
+                    <Text style={styles.featName} numberOfLines={1}>
+                      {a.users?.name || 'Artista'}
+                    </Text>
+                    {a.is_verified && <VerifiedBadge />}
+                  </View>
+                  <Text style={styles.featMeta} numberOfLines={1}>
+                    {[rating > 0 ? `⭐ ${rating.toFixed(1)}` : null, a.genre, a.city].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <View style={styles.pricePill}>
+                  <Text style={styles.priceText}>{rate != null ? `S/${rate}/h` : 'A convenir'}</Text>
+                </View>
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+    </GlassCard>
+  );
+
+  // Mapa: el iframe conserva el hover (foto e info). La navegación al mapa completo
+  // la maneja el envoltorio (wrapPanel).
+  const panelMapa = (
+    <GlassCard style={styles.panel}>
+      <View style={styles.panelTitleRow}>
+        <Text style={styles.panelTitle}>📍 Mapa en tiempo real</Text>
+        <View style={styles.livePill}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveText}>EN VIVO</Text>
+        </View>
+      </View>
+      <Text style={styles.panelHint}>Pasa el cursor por un pin · toca para abrir el mapa</Text>
+      <View style={styles.mapWrap}>
+        <MapView center={CUSCO} markers={mapMarkers} height={MAP_H} onMarkerClick={openArtist} />
+      </View>
+      <Text style={styles.panelLink}>{mapMarkers.length} ubicados · Clic en un pin para ver al artista</Text>
+    </GlassCard>
+  );
+
+  // Filtros: lanzador hacia la pantalla de búsqueda (más visible). Al tocar el panel
+  // se abre SearchScreen con buscador + filtros + resultados a lo ancho.
+  const panelFiltros = (
+    <GlassCard style={styles.panel}>
+      <Text style={styles.panelTitle}>🔎 Búsqueda por filtros</Text>
+      <Text style={styles.panelHint}>Encuentra por género, distrito, evento y precio</Text>
+      <View style={styles.fakeSearch}>
+        <Text style={styles.searchIcon}>🔎</Text>
+        <Text style={styles.fakeSearchText}>Buscar artistas…</Text>
+      </View>
+      {allGenres.length > 0 && (
+        <>
+          <Text style={styles.filterLabel}>Géneros</Text>
+          <View style={styles.previewChips}>
+            {allGenres.slice(0, 8).map((g) => (
+              <View key={g} style={styles.previewChip}>
+                <Text style={styles.previewChipText}>{g}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+      <Text style={styles.panelLink}>
+        Ver {artists !== null ? `los ${artists.length} artistas` : 'el catálogo'} →
+      </Text>
+    </GlassCard>
+  );
+
+  // Envuelve cada panel con su tamaño; si recibe onNavigate, todo el panel es clicable
+  // y lleva a su ventana correspondiente.
+  const wrapPanel = (content: ReactNode, onNavigate?: () => void) => {
+    const sizeStyle = wide ? styles.panelFlex : styles.panelFull;
+    if (onNavigate) {
+      return (
+        <TouchableOpacity style={sizeStyle} activeOpacity={0.92} onPress={onNavigate}>
+          {content}
+        </TouchableOpacity>
+      );
+    }
+    return <View style={sizeStyle}>{content}</View>;
+  };
 
   return (
     <View style={styles.root}>
@@ -188,271 +278,152 @@ export default function HomeScreen({
       <LinearGradient colors={['#FF3DD4', 'transparent']} style={styles.orbA} pointerEvents="none" />
       <LinearGradient colors={['#27E1FF', 'transparent']} style={styles.orbB} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Logo size={88} style={styles.headerLogo} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>MusicYA</Text>
-          <Text style={styles.welcome}>
+        {/* Barra superior: saludo + accesos de sesión (arriba a la derecha) */}
+        <View style={styles.topBar}>
+          <Text style={styles.welcome} numberOfLines={1}>
             {isGuest
               ? 'Explora como invitado'
               : `Hola, ${user?.name} · ${user?.role === 'artista' ? 'Artista' : 'Cliente'}`}
           </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.bell}
-          onPress={isGuest ? requireLogin : onOpenNotifications}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.bellIcon}>🔔</Text>
-          {!isGuest && unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        {isGuest ? (
-          <GlassButton title="Ingresar" onPress={requireLogin} size="sm" style={styles.logout} />
-        ) : (
-          <GlassButton title="Salir" onPress={logout} size="sm" style={styles.logout} />
-        )}
-      </View>
-
-      {/* Proceso de contratación en primer plano (hasta confirmar el pago) */}
-      <BookingTracker
-        role={user?.role}
-        enabled={!isGuest}
-        onPay={onPay}
-        onOpenBookings={onOpenBookings}
-      />
-
-      <View style={styles.navRow}>
-        <GlassButton title="🗺️ Mapa" onPress={onOpenMap} size="sm" style={styles.navBtn} />
-        <GlassButton title="📅 Reservas" onPress={onOpenBookings} size="sm" style={styles.navBtn} />
-        <GlassButton title="💬 Chat" onPress={onOpenChat} size="sm" style={styles.navBtn} />
-      </View>
-
-      <GlassButton
-        title="🤖 Pregúntale al asistente IA"
-        onPress={onOpenCopilot}
-        style={styles.featureBtn}
-      />
-
-      {!isGuest && user?.role === 'artista' && (
-        <GlassButton title="🎨 Mi portafolio" onPress={onOpenPortfolio} style={styles.featureBtn} />
-      )}
-
-      <GlassButton
-        title="📊 Indicadores de la plataforma"
-        onPress={onOpenMetrics}
-        style={styles.featureBtn}
-      />
-
-      {viewed.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Vistos recientemente</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.viewedRow}
-          >
-            {viewed.map((v) => (
-              <TouchableOpacity
-                key={v.id}
-                style={styles.viewedTouch}
-                onPress={() => openArtist(v.id)}
-                activeOpacity={0.85}
-              >
-                <GlassCard style={styles.viewedChip}>
-                  <View style={styles.viewedAvatar}>
-                    <Text style={styles.avatarText}>{(v.name || '?').charAt(0).toUpperCase()}</Text>
+          {isGuest ? (
+            <>
+              <GlassButton title="Iniciar sesión" onPress={requireLogin} size="sm" />
+              <GlassButton title="Crear cuenta" onPress={requireRegister} size="sm" />
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.bell} onPress={onOpenNotifications} activeOpacity={0.85}>
+                <Text style={styles.bellIcon}>🔔</Text>
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                   </View>
-                  <View style={styles.viewedNameRow}>
-                    <Text style={styles.viewedName} numberOfLines={1}>{v.name}</Text>
-                    {v.is_verified && <VerifiedBadge />}
-                  </View>
-                  {v.genre ? (
-                    <Text style={styles.viewedGenre} numberOfLines={1}>{v.genre}</Text>
-                  ) : null}
-                </GlassCard>
+                )}
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </>
-      )}
+              <GlassButton title="Salir" onPress={logout} size="sm" />
+            </>
+          )}
+        </View>
 
-      {/* Buscador con filtros: el eje de la hipótesis (reducir el tiempo de búsqueda) */}
-      <Text style={styles.sectionTitle}>Encuentra tu artista</Text>
-      <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>🔎</Text>
-        <TextInput
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Busca por nombre o género…"
-          placeholderTextColor={colors.muted}
-          returnKeyType="search"
-        />
-        {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery('')} hitSlop={8}>
-            <Text style={styles.searchClear}>✕</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Filtro por género */}
-      {allGenres.length > 0 && (
-        <>
-          <Text style={styles.filterLabel}>Género</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-            <Chip label="Todos" active={fGenre === null} onPress={() => setFGenre(null)} />
-            {allGenres.map((g) => (
-              <Chip key={g} label={g} active={fGenre === g} onPress={() => setFGenre(fGenre === g ? null : g)} />
-            ))}
-          </ScrollView>
-        </>
-      )}
-
-      {/* Filtro por distrito */}
-      {allDistricts.length > 0 && (
-        <>
-          <Text style={styles.filterLabel}>Distrito</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-            <Chip label="Todos" active={fDistrict === null} onPress={() => setFDistrict(null)} />
-            {allDistricts.map((d) => (
-              <Chip key={d} label={d} active={fDistrict === d} onPress={() => setFDistrict(fDistrict === d ? null : d)} />
-            ))}
-          </ScrollView>
-        </>
-      )}
-
-      {/* Filtro por tipo de evento */}
-      {allEventTypes.length > 0 && (
-        <>
-          <Text style={styles.filterLabel}>Tipo de evento</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-            <Chip label="Todos" active={fEventType === null} onPress={() => setFEventType(null)} />
-            {allEventTypes.map((e) => (
-              <Chip key={e} label={e} active={fEventType === e} onPress={() => setFEventType(fEventType === e ? null : e)} />
-            ))}
-          </ScrollView>
-        </>
-      )}
-
-      {/* Filtro por precio y disponibilidad en tiempo real */}
-      <Text style={styles.filterLabel}>Precio y disponibilidad</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-        {PRICE_OPTIONS.map((p) => (
-          <Chip
-            key={p.label}
-            label={p.label}
-            active={fMaxPrice === p.value}
-            onPress={() => setFMaxPrice(p.value)}
+        {/* Hero con fondo de fiesta detrás del logo */}
+        <View style={styles.hero}>
+          <LinearGradient
+            colors={gradients.wave}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
-        ))}
-        <Chip
-          label="🟢 Disponibles"
-          active={fAvailable}
-          onPress={() => setFAvailable((v) => !v)}
+          <LinearGradient
+            colors={['rgba(13,10,24,0.12)', 'rgba(13,10,24,0.74)']}
+            style={StyleSheet.absoluteFill}
+          />
+          {CONFETTI.map((c, i) => (
+            <View
+              key={i}
+              pointerEvents="none"
+              style={[
+                styles.confetti,
+                { top: c.top, left: c.left as any, width: c.size, height: c.size, backgroundColor: c.color },
+              ]}
+            />
+          ))}
+          <Text style={styles.partyEmoji}>🎉</Text>
+          <Logo size={150} style={styles.heroLogo} />
+          <Text style={styles.heroBrand}>MusicYA</Text>
+          <Text style={styles.heroTagline}>
+            Contrata músicos y artistas de Cusco en tiempo real, fácil y sin intermediarios.
+          </Text>
+        </View>
+
+        {/* Proceso de contratación en primer plano (hasta confirmar el pago) */}
+        <BookingTracker
+          role={user?.role}
+          enabled={!isGuest}
+          onPay={onPay}
+          onOpenBookings={onOpenBookings}
         />
-      </ScrollView>
 
-      <View style={styles.resultsHead}>
-        <Text style={styles.sectionTitle}>
-          {hasFilters ? 'Resultados' : 'Catálogo'}
-          {artists !== null ? ` · ${visible.length}` : ''}
-        </Text>
-        {hasFilters && (
-          <TouchableOpacity
-            onPress={() => {
-              setQuery('');
-              setFGenre(null);
-              setFDistrict(null);
-              setFEventType(null);
-              setFMaxPrice(null);
-              setFAvailable(false);
-            }}
-          >
-            <Text style={styles.clearLink}>Limpiar</Text>
-          </TouchableOpacity>
+        {/* Los 3 paneles principales de búsqueda, juntos, debajo del logo */}
+        <Text style={styles.sectionTitle}>Encuentra tu artista</Text>
+        <View style={[styles.panels, wide ? styles.panelsRow : styles.panelsCol]}>
+          {wrapPanel(panelDestacados, onOpenFeatured)}
+          {wrapPanel(panelMapa, onOpenMap)}
+          {wrapPanel(panelFiltros, onOpenSearch)}
+        </View>
+
+        <GlassButton
+          title="🤖 Pregúntale al asistente IA"
+          onPress={onOpenCopilot}
+          style={styles.featureBtn}
+        />
+
+        {!isGuest && user?.role === 'artista' && (
+          <GlassButton title="🎨 Mi portafolio" onPress={onOpenPortfolio} style={styles.featureBtn} />
         )}
-      </View>
 
-      {artists === null ? (
-        <Text style={styles.placeholder}>Cargando artistas…</Text>
-      ) : visible.length === 0 ? (
-        <Text style={styles.placeholder}>
-          {hasFilters ? 'Ningún artista coincide con tu búsqueda.' : 'Aún no hay artistas registrados.'}
-        </Text>
-      ) : (
-        <View style={styles.grid}>
-          {visible.map((a, i) => {
-            const rating = Number(a.rating_avg) || 0;
-            return (
-              <MotiView
-                key={a.id}
-                style={styles.gridItem}
-                from={{ opacity: 0, translateY: 18, scale: 0.97 }}
-                animate={{ opacity: 1, translateY: 0, scale: 1 }}
-                transition={{ type: 'timing', duration: 360, delay: i * 70 }}
-              >
+        <GlassButton
+          title="📊 Indicadores de la plataforma"
+          onPress={onOpenMetrics}
+          style={styles.featureBtn}
+        />
+
+        {viewed.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Vistos recientemente</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.viewedRow}
+            >
+              {viewed.map((v) => (
                 <TouchableOpacity
-                  style={styles.tileTouch}
-                  onPress={() => openArtist(a.id)}
+                  key={v.id}
+                  style={styles.viewedTouch}
+                  onPress={() => openArtist(v.id)}
                   activeOpacity={0.85}
                 >
-                  <GlassCard style={styles.tile}>
-                    {a.avatar_url ? (
-                      <Image source={{ uri: a.avatar_url }} style={styles.avatar} />
-                    ) : (
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{(a.users?.name || '?').charAt(0).toUpperCase()}</Text>
-                      </View>
-                    )}
-                    <View style={styles.nameRow}>
-                      <Text style={styles.artistName} numberOfLines={1}>
-                        {a.users?.name || 'Artista'}
-                      </Text>
-                      {a.is_verified && <VerifiedBadge />}
+                  <GlassCard style={styles.viewedChip}>
+                    <View style={styles.viewedAvatar}>
+                      <Text style={styles.avatarText}>{(v.name || '?').charAt(0).toUpperCase()}</Text>
                     </View>
-                    <Text style={styles.artistMeta} numberOfLines={1}>
-                      {[a.genre, a.city].filter(Boolean).join(' · ') || 'Sin datos'}
-                    </Text>
-                    <View style={styles.tileFoot}>
-                      <Text style={styles.rating}>{rating > 0 ? `⭐ ${rating.toFixed(1)}` : 'Nuevo'}</Text>
-                      {a.hourly_rate != null && <Text style={styles.price}>S/{a.hourly_rate}/h</Text>}
+                    <View style={styles.viewedNameRow}>
+                      <Text style={styles.viewedName} numberOfLines={1}>{v.name}</Text>
+                      {v.is_verified && <VerifiedBadge />}
                     </View>
+                    {v.genre ? (
+                      <Text style={styles.viewedGenre} numberOfLines={1}>{v.genre}</Text>
+                    ) : null}
                   </GlassCard>
                 </TouchableOpacity>
-              </MotiView>
-            );
-          })}
-        </View>
-      )}
+              ))}
+            </ScrollView>
+          </>
+        )}
 
-      <Text style={styles.sectionTitle}>Módulos</Text>
-      <View style={styles.grid}>
-        {FEATURES.map((f, i) => (
-          <MotiView
-            key={f.title}
-            style={styles.gridItem}
-            from={{ opacity: 0, translateY: 18 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 360, delay: 300 + i * 70 }}
-          >
-            <TouchableOpacity
-              style={styles.tileTouch}
-              onPress={featureActions[f.action]}
-              activeOpacity={0.85}
+        <Text style={styles.sectionTitle}>Módulos</Text>
+        <View style={styles.grid}>
+          {FEATURES.map((f, i) => (
+            <MotiView
+              key={f.title}
+              style={styles.gridItem}
+              from={{ opacity: 0, translateY: 18 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 360, delay: 300 + i * 70 }}
             >
-              <GlassCard style={styles.moduleTile}>
-                <Text style={styles.cardIcon}>{f.icon}</Text>
-                <Text style={styles.cardTitle}>{f.title}</Text>
-                <Text style={styles.cardDesc}>{f.desc}</Text>
-              </GlassCard>
-            </TouchableOpacity>
-          </MotiView>
-        ))}
-      </View>
+              <TouchableOpacity
+                style={styles.tileTouch}
+                onPress={featureActions[f.action]}
+                activeOpacity={0.85}
+              >
+                <GlassCard style={styles.moduleTile}>
+                  <Text style={styles.cardIcon}>{f.icon}</Text>
+                  <Text style={styles.cardTitle}>{f.title}</Text>
+                  <Text style={styles.cardDesc}>{f.desc}</Text>
+                </GlassCard>
+              </TouchableOpacity>
+            </MotiView>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -478,12 +449,10 @@ const styles = StyleSheet.create({
     borderRadius: 120,
     opacity: 0.4,
   },
-  content: { padding: spacing.lg, paddingTop: 64 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  headerLogo: { marginRight: spacing.sm },
-  brand: { color: colors.accent, fontSize: type.title, fontFamily: fonts.display, letterSpacing: -0.5 },
-  welcome: { color: colors.muted, fontSize: 14, marginTop: 4, fontFamily: fonts.medium },
-  logout: {},
+  content: { padding: spacing.lg, paddingTop: 48, paddingBottom: 48 },
+  // Barra superior
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  welcome: { flex: 1, color: colors.muted, fontSize: 14, fontFamily: fonts.medium },
   bell: {
     backgroundColor: colors.surfaceAlt,
     width: 42,
@@ -493,7 +462,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
   },
   bellIcon: { fontSize: 18 },
   badge: {
@@ -511,9 +479,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: { color: colors.ink, fontSize: 11, fontFamily: fonts.display },
-  navRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg },
-  navBtn: { flex: 1 },
-  featureBtn: { marginBottom: spacing.md },
+  // Hero de fiesta
+  hero: {
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    ...glow(),
+  },
+  confetti: { position: 'absolute', borderRadius: 3, opacity: 0.9, transform: [{ rotate: '20deg' }] },
+  partyEmoji: { fontSize: 26, marginBottom: 2 },
+  heroLogo: { marginBottom: spacing.sm },
+  heroBrand: {
+    color: colors.text,
+    fontSize: type.hero,
+    fontFamily: fonts.display,
+    letterSpacing: -1,
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowRadius: 8,
+  },
+  heroTagline: {
+    color: '#F3ECFF',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    fontFamily: fonts.medium,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    maxWidth: 620,
+  },
+  featureBtn: { marginBottom: spacing.md, marginTop: spacing.sm },
   sectionTitle: {
     color: colors.text,
     fontSize: type.h2,
@@ -523,9 +522,34 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.sm,
   },
-  placeholder: { color: colors.muted, fontSize: 14, marginBottom: spacing.lg, fontFamily: fonts.regular },
-  // Buscador
-  searchBox: {
+  // Fila de los 3 paneles
+  panels: { marginBottom: spacing.lg },
+  panelsRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  panelsCol: { flexDirection: 'column', gap: spacing.md },
+  panel: { padding: spacing.md, height: PANEL_H, width: '100%' },
+  panelFlex: { flex: 1, minWidth: 0 },
+  panelFull: { width: '100%' },
+  panelScroll: { flex: 1 },
+  panelLink: { color: colors.accent, fontSize: 13, fontFamily: fonts.bold, marginTop: spacing.sm },
+  panelTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  panelTitle: { color: colors.text, fontSize: type.h3, fontFamily: fonts.bold },
+  panelHint: { color: colors.muted, fontSize: 12, fontFamily: fonts.regular, marginTop: 2, marginBottom: spacing.sm },
+  panelBody: { gap: spacing.sm },
+  panelEmpty: { color: colors.muted, fontSize: 13, fontFamily: fonts.regular, paddingVertical: spacing.md },
+  livePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(39,225,255,0.14)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.cyan },
+  liveText: { color: colors.cyan, fontSize: 10, fontFamily: fonts.bold, letterSpacing: 0.5 },
+  mapWrap: { borderRadius: radius.md, overflow: 'hidden' },
+  // Vista previa del panel de filtros (lanzador)
+  fakeSearch: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceAlt,
@@ -533,11 +557,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
+    paddingVertical: 12,
     marginBottom: spacing.md,
   },
   searchIcon: { fontSize: 16, marginRight: spacing.sm },
-  searchInput: { flex: 1, color: colors.text, fontSize: 15, fontFamily: fonts.regular, paddingVertical: 12 },
-  searchClear: { color: colors.muted, fontSize: 16, paddingHorizontal: 4 },
+  fakeSearchText: { color: colors.muted, fontSize: 15, fontFamily: fonts.regular },
   filterLabel: {
     color: colors.muted,
     fontSize: 12,
@@ -546,20 +570,42 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  chipsRow: { gap: spacing.sm, paddingRight: spacing.sm, paddingBottom: spacing.sm },
-  chip: {
+  previewChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  previewChip: {
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.accent },
-  chipText: { color: colors.muted, fontSize: 13, fontFamily: fonts.medium },
-  chipTextActive: { color: colors.text, fontFamily: fonts.bold },
-  resultsHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  clearLink: { color: colors.accent, fontSize: 13, fontFamily: fonts.bold },
+  previewChipText: { color: colors.muted, fontSize: 13, fontFamily: fonts.medium },
+  // Fila de artista destacado (dentro del panel)
+  featRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  featAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featAvatarText: { color: colors.text, fontSize: 15, fontFamily: fonts.display },
+  featNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  featName: { color: colors.text, fontSize: 14, fontFamily: fonts.bold, flexShrink: 1 },
+  featMeta: { color: colors.muted, fontSize: 12, fontFamily: fonts.regular, marginTop: 1 },
+  // Precio resaltado (mismo tratamiento en toda la app)
+  pricePill: {
+    backgroundColor: 'rgba(214,51,255,0.16)',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  priceText: { color: colors.accent, fontSize: 13, fontFamily: fonts.display },
   viewedRow: { gap: spacing.md, paddingBottom: spacing.md, paddingRight: spacing.sm },
   viewedTouch: { width: 132, borderRadius: radius.lg, ...glow() },
   viewedChip: { padding: spacing.md },
@@ -577,36 +623,12 @@ const styles = StyleSheet.create({
   viewedNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   viewedName: { color: colors.text, fontSize: 14, fontFamily: fonts.bold, flexShrink: 1 },
   viewedGenre: { color: colors.muted, fontSize: 12, marginTop: 2, fontFamily: fonts.regular },
-  // Rejilla modular "Vento Grid": dos columnas que fluyen
+  avatarText: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
+  // Rejilla de módulos
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   gridItem: { width: '48%', marginBottom: spacing.md },
   tileTouch: { borderRadius: radius.lg, ...glow() },
-  tile: { padding: spacing.md, minHeight: 148 },
-  tileFoot: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 'auto',
-    paddingTop: spacing.sm,
-  },
   moduleTile: { padding: spacing.md, minHeight: 128 },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  avatarText: { color: colors.text, fontSize: 18, fontFamily: fonts.display },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  artistName: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, flexShrink: 1 },
-  artistMeta: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },
-  rating: { color: colors.accent, fontSize: 14, fontFamily: fonts.bold },
-  price: { color: colors.muted, fontSize: 12, fontFamily: fonts.regular },
   cardIcon: { fontSize: 28, marginBottom: spacing.sm },
   cardTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.bold },
   cardDesc: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.regular },

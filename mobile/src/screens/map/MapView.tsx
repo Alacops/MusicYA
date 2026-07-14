@@ -13,6 +13,7 @@ export default function MapView({
   center: LatLng;
   markers: MapMarker[];
   height?: number;
+  onMarkerClick?: (id: number) => void;
 }) {
   return (
     <View style={[styles.box, { height }]}>

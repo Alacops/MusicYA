@@ -14,6 +14,7 @@ import BookingsScreen from './src/screens/BookingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ConversationsScreen from './src/screens/ConversationsScreen';
 import CopilotScreen from './src/screens/CopilotScreen';
+import FeaturedScreen from './src/screens/FeaturedScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -23,6 +24,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import PortfolioScreen from './src/screens/PortfolioScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import SearchScreen from './src/screens/SearchScreen';
 import { NotificationsProvider } from './src/notifications/NotificationsContext';
 import { SocketProvider } from './src/socket/SocketContext';
 import { colors } from './src/theme';
@@ -33,6 +35,8 @@ type Route =
   | { name: 'artist'; id: number }
   | { name: 'bookings' }
   | { name: 'map' }
+  | { name: 'search' }
+  | { name: 'featured' }
   | { name: 'payment'; bookingId: number }
   | { name: 'notifications' }
   | { name: 'conversations' }
@@ -47,9 +51,11 @@ type Route =
 function AuthedApp({
   isGuest = false,
   onRequireLogin,
+  onRequireRegister,
 }: {
   isGuest?: boolean;
   onRequireLogin?: () => void;
+  onRequireRegister?: () => void;
 }) {
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const goHome = () => setRoute({ name: 'home' });
@@ -82,6 +88,12 @@ function AuthedApp({
   if (route.name === 'map') {
     return <MapScreen onBack={goHome} onOpenArtist={openArtist} />;
   }
+  if (route.name === 'search') {
+    return <SearchScreen onBack={goHome} onOpenArtist={openArtist} />;
+  }
+  if (route.name === 'featured') {
+    return <FeaturedScreen onBack={goHome} onOpenArtist={openArtist} />;
+  }
   if (route.name === 'notifications') {
     return <NotificationsScreen onBack={goHome} />;
   }
@@ -110,10 +122,13 @@ function AuthedApp({
     <HomeScreen
       isGuest={isGuest}
       onRequireLogin={requireLogin}
+      onOpenRegister={onRequireRegister}
       onOpenArtist={openArtist}
       onOpenPortfolio={() => setRoute({ name: 'portfolio' })}
       onOpenBookings={gated(() => setRoute({ name: 'bookings' }))}
       onOpenMap={() => setRoute({ name: 'map' })}
+      onOpenSearch={() => setRoute({ name: 'search' })}
+      onOpenFeatured={() => setRoute({ name: 'featured' })}
       onOpenNotifications={gated(() => setRoute({ name: 'notifications' }))}
       onOpenChat={gated(() => setRoute({ name: 'conversations' }))}
       onOpenCopilot={() => setRoute({ name: 'copilot' })}
@@ -128,7 +143,9 @@ function AuthedApp({
 // notificaciones son inertes sin token, así que envuelven también al invitado.
 function Root() {
   const { user, loading } = useAuth();
-  const [publicView, setPublicView] = useState<'landing' | 'login' | 'register' | 'guest'>('landing');
+  // El Home (como invitado) es lo primero que se ve al abrir la app; desde ahí se
+  // inicia sesión o se crea cuenta con los botones de la barra superior.
+  const [publicView, setPublicView] = useState<'landing' | 'login' | 'register' | 'guest'>('guest');
 
   // Mientras se restaura la sesión guardada, evita parpadear la landing
   if (loading) {
@@ -143,19 +160,25 @@ function Root() {
   if (user) {
     content = <AuthedApp />;
   } else if (publicView === 'guest') {
-    content = <AuthedApp isGuest onRequireLogin={() => setPublicView('login')} />;
+    content = (
+      <AuthedApp
+        isGuest
+        onRequireLogin={() => setPublicView('login')}
+        onRequireRegister={() => setPublicView('register')}
+      />
+    );
   } else if (publicView === 'login') {
     content = (
       <LoginScreen
         onGoRegister={() => setPublicView('register')}
-        onBack={() => setPublicView('landing')}
+        onBack={() => setPublicView('guest')}
       />
     );
   } else if (publicView === 'register') {
     content = (
       <RegisterScreen
         onGoLogin={() => setPublicView('login')}
-        onBack={() => setPublicView('landing')}
+        onBack={() => setPublicView('guest')}
       />
     );
   } else {

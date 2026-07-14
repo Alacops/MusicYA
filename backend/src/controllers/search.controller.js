@@ -89,12 +89,22 @@ async function nearby(req, res, next) {
       results = results.filter((a) => a.is_available === want);
     }
 
-    // Enriquecer con el nombre del artista (la función SQL solo devuelve el perfil)
+    // Enriquecer con nombre, foto y tarifa (la función SQL solo devuelve el perfil base)
     if (results.length) {
-      const ids = [...new Set(results.map((r) => r.user_id))];
-      const { data: users } = await supabase.from('users').select('id, name').in('id', ids);
+      const userIds = [...new Set(results.map((r) => r.user_id))];
+      const artistIds = [...new Set(results.map((r) => r.id))];
+      const [{ data: users }, { data: profiles }] = await Promise.all([
+        supabase.from('users').select('id, name').in('id', userIds),
+        supabase.from('artist_profiles').select('id, avatar_url, hourly_rate').in('id', artistIds),
+      ]);
       const nameById = Object.fromEntries((users || []).map((u) => [u.id, u.name]));
-      results = results.map((r) => ({ ...r, name: nameById[r.user_id] || 'Artista' }));
+      const profById = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+      results = results.map((r) => ({
+        ...r,
+        name: nameById[r.user_id] || 'Artista',
+        avatar_url: profById[r.id]?.avatar_url ?? null,
+        hourly_rate: profById[r.id]?.hourly_rate ?? null,
+      }));
     }
 
     res.json(results);

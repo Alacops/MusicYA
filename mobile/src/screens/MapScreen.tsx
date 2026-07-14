@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api/client';
+import BackButton from '../components/BackButton';
 import GlassButton from '../components/GlassButton';
 import { colors, spacing } from '../theme';
 import MapView from './map/MapView';
@@ -21,6 +22,8 @@ type NearbyArtist = {
   rating_avg: number | string | null;
   is_available: boolean;
   distance_km: number;
+  avatar_url?: string | null;
+  hourly_rate?: number | string | null;
 };
 
 export default function MapScreen({
@@ -34,6 +37,29 @@ export default function MapScreen({
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const lastSig = useRef<string>('');
+
+  // Foto y tarifa por artista, tomadas del catálogo (/artists trae avatar_url y
+  // hourly_rate). Así el mapa muestra foto y precio aunque el endpoint nearby no
+  // los incluya. Se unen por id (mismo espacio de ids que artist_profiles).
+  const [meta, setMeta] = useState<Record<number, { avatar_url?: string | null; hourly_rate?: number | string | null }>>({});
+  useEffect(() => {
+    api
+      .get<{ id: number; avatar_url?: string | null; hourly_rate?: number | string | null }[]>('/artists')
+      .then((list) => {
+        const m: Record<number, { avatar_url?: string | null; hourly_rate?: number | string | null }> = {};
+        (Array.isArray(list) ? list : []).forEach((a) => {
+          m[a.id] = { avatar_url: a.avatar_url, hourly_rate: a.hourly_rate };
+        });
+        setMeta(m);
+      })
+      .catch(() => {});
+  }, []);
+
+  const avatarOf = (a: NearbyArtist) => a.avatar_url ?? meta[a.id]?.avatar_url ?? null;
+  const rateOf = (a: NearbyArtist) => {
+    const r = a.hourly_rate ?? meta[a.id]?.hourly_rate ?? null;
+    return r != null ? Number(r) : null;
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -63,19 +89,33 @@ export default function MapScreen({
   }, [load]);
 
   const markers: MapMarker[] = (artists || []).map((a) => ({
+    id: a.id,
     lat: a.lat,
     lng: a.lng,
     name: a.name || 'Artista',
     genre: a.genre,
     distanceKm: a.distance_km,
     available: a.is_available,
+    avatarUrl: avatarOf(a),
+    hourlyRate: rateOf(a),
   }));
+
+  // Doble clic sobre un artista → abre su perfil/portafolio. Guardamos el último
+  // toque (id + hora) para distinguir un doble clic de dos toques sueltos.
+  const lastTap = useRef<{ id: number; t: number }>({ id: -1, t: 0 });
+  const handleArtistPress = (id: number) => {
+    const now = Date.now();
+    if (lastTap.current.id === id && now - lastTap.current.t < 320) {
+      lastTap.current = { id: -1, t: 0 };
+      onOpenArtist(id);
+    } else {
+      lastTap.current = { id, t: now };
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-        <Text style={styles.backLink}>← Volver</Text>
-      </TouchableOpacity>
+      <BackButton onPress={onBack} style={styles.backBtn} />
 
       <View style={styles.headerRow}>
         <Text style={styles.title}>Artistas en Cusco</Text>
@@ -98,24 +138,40 @@ export default function MapScreen({
         <ActivityIndicator color={colors.primary} size="large" style={{ marginVertical: spacing.lg }} />
       ) : (
         <>
-          <MapView center={CUSCO} markers={markers} />
+          <MapView center={CUSCO} markers={markers} onMarkerClick={onOpenArtist} />
 
           <Text style={styles.sectionTitle}>{markers.length} artistas cerca</Text>
-          {artists.map((a) => (
-            <TouchableOpacity
-              key={a.id}
-              style={styles.row}
-              onPress={() => onOpenArtist(a.id)}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.dot, { backgroundColor: a.is_available ? colors.primary : colors.muted }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowName}>{a.name || 'Artista'}</Text>
-                <Text style={styles.rowMeta}>{a.genre || 'Sin género'}</Text>
-              </View>
-              <Text style={styles.rowDist}>{a.distance_km.toFixed(1)} km</Text>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.listHint}>Clic en un pin del mapa (o doble clic en la lista) para ver su perfil y portafolio</Text>
+          {artists.map((a) => {
+            const rate = rateOf(a);
+            const avatar = avatarOf(a);
+            return (
+              <TouchableOpacity
+                key={a.id}
+                style={styles.row}
+                onPress={() => handleArtistPress(a.id)}
+                activeOpacity={0.85}
+              >
+                {avatar ? (
+                  <Image source={{ uri: avatar }} style={styles.rowAvatar} />
+                ) : (
+                  <View style={styles.rowAvatar}>
+                    <Text style={styles.rowAvatarText}>{(a.name || '?').charAt(0).toUpperCase()}</Text>
+                  </View>
+                )}
+                <View style={[styles.dot, { backgroundColor: a.is_available ? colors.cyan : colors.muted }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowName}>{a.name || 'Artista'}</Text>
+                  <Text style={styles.rowMeta}>
+                    {(a.genre || 'Sin género') + ' · ' + a.distance_km.toFixed(1) + ' km'}
+                  </Text>
+                </View>
+                <View style={styles.pricePill}>
+                  <Text style={styles.priceText}>{rate != null ? `S/${rate}/h` : 'A convenir'}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
           {markers.length === 0 && (
             <Text style={styles.placeholder}>No hay artistas con ubicación en este radio.</Text>
           )}
@@ -134,7 +190,8 @@ const styles = StyleSheet.create({
   updated: { color: colors.muted, fontSize: 12, marginTop: 4, marginBottom: spacing.md },
   errorBox: { backgroundColor: '#3B1219', borderRadius: 10, padding: spacing.md, marginBottom: spacing.md },
   errorText: { color: '#FCA5A5', fontSize: 13 },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.md },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: spacing.lg, marginBottom: 4 },
+  listHint: { color: colors.muted, fontSize: 12, marginBottom: spacing.md },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,9 +200,29 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  dot: { width: 12, height: 12, borderRadius: 6, marginRight: spacing.md },
+  rowAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  rowAvatarText: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  dot: { width: 10, height: 10, borderRadius: 5, marginRight: spacing.sm },
   rowName: { color: colors.text, fontSize: 15, fontWeight: '700' },
   rowMeta: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  rowDist: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+  pricePill: {
+    backgroundColor: 'rgba(214,51,255,0.16)',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  priceText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
   placeholder: { color: colors.muted, fontSize: 14 },
 });
